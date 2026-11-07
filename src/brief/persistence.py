@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS articles (
     image_url TEXT,
     image_media_type TEXT,
     image_data BLOB,
+    watchouts_json TEXT NOT NULL DEFAULT '[]',
+    important_points_json TEXT NOT NULL DEFAULT '[]',
+    llm_curated INTEGER NOT NULL DEFAULT 0,
     UNIQUE(source_id, canonical_url)
 );
 CREATE INDEX IF NOT EXISTS articles_url_idx ON articles(canonical_url);
@@ -141,6 +144,17 @@ class Database:
                 "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(3, ?)",
                 (_now(),),
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(articles)").fetchall()}
+            if "watchouts_json" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN watchouts_json TEXT NOT NULL DEFAULT '[]'")
+            if "important_points_json" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN important_points_json TEXT NOT NULL DEFAULT '[]'")
+            if "llm_curated" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN llm_curated INTEGER NOT NULL DEFAULT 0")
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(4, ?)",
+                (_now(),),
+            )
 
     def sync_sources(self, sources: list[SourceConfig]) -> None:
         with self.connect() as connection:
@@ -179,21 +193,25 @@ class Database:
             article.image_url,
             article.image_media_type,
             article.image_data,
+            json.dumps(article.watchouts),
+            json.dumps(article.important_points),
+            int(article.llm_curated),
         )
         with self.connect() as connection:
             connection.execute(
                 """INSERT INTO articles(
                 id,source_id,title,url,canonical_url,author,published_at,fetched_at,
                 content_html,content_text,content_fingerprint,summary,category,language,image_url,
-                image_media_type,image_data
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                image_media_type,image_data,watchouts_json,important_points_json,llm_curated
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
                 title=excluded.title,url=excluded.url,canonical_url=excluded.canonical_url,
                 author=excluded.author,published_at=excluded.published_at,
                 fetched_at=excluded.fetched_at,content_html=excluded.content_html,
                 content_text=excluded.content_text,content_fingerprint=excluded.content_fingerprint,
                 summary=excluded.summary,category=excluded.category,language=excluded.language,
                 image_url=excluded.image_url,image_media_type=excluded.image_media_type,
-                image_data=excluded.image_data""",
+                image_data=excluded.image_data,watchouts_json=excluded.watchouts_json,
+                important_points_json=excluded.important_points_json,llm_curated=excluded.llm_curated""",
                 values,
             )
 
@@ -263,6 +281,9 @@ class Database:
                 image_url=item["image_url"],
                 image_media_type=item["image_media_type"],
                 image_data=item["image_data"],
+                watchouts=json.loads(item["watchouts_json"]),
+                important_points=json.loads(item["important_points_json"]),
+                llm_curated=bool(item["llm_curated"]),
                 category=item["category"],
                 language=item["language"],
             )

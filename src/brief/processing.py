@@ -95,6 +95,7 @@ def normalize_image_url(value: object, base_url: str) -> str | None:
 class ProcessingContext:
     config: AppConfig
     cutoff: datetime
+    selection_limit: int | None = None
 
 
 class Processor(Protocol):
@@ -106,13 +107,22 @@ class EditorialPipeline:
         normalized = [self._normalize(article) for article in articles]
         filtered = self._quality_and_age(normalized, context)
         categorized = [self._categorize(article, context.config) for article in filtered]
-        if context.config.editorial.categories:
+        # When LLM editorial is enabled, it assigns the canonical genre labels. Let it
+        # see otherwise eligible stories first, then apply the configured genre allowlist.
+        if context.config.editorial.categories and not context.config.llm.enabled:
             allowed = set(context.config.editorial.categories)
             categorized = [article for article in categorized if article.category in allowed]
         if context.config.editorial.deduplicate:
             categorized = self._deduplicate(categorized, context.config)
         ordered = sorted(categorized, key=lambda article: self._sort_key(article, context.config))
-        return ordered[: context.config.publication.max_articles]
+        return ordered[: context.selection_limit or context.config.publication.max_articles]
+
+    @staticmethod
+    def filter_categories(articles: list[Article], categories: list[str]) -> list[Article]:
+        if not categories:
+            return articles
+        allowed = {category.casefold() for category in categories}
+        return [article for article in articles if (article.category or "").casefold() in allowed]
 
     def _normalize(self, article: Article) -> Article:
         url = canonicalize_url(article.url)

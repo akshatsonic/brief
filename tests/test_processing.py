@@ -98,3 +98,28 @@ def test_pipeline_filters_stale_articles() -> None:
         content_text="content",
     )
     assert EditorialPipeline().process([stale], ProcessingContext(config, now)) == []
+
+
+def test_llm_genre_allowlist_applies_after_model_categorization() -> None:
+    config = AppConfig.model_validate(
+        {
+            "publication": {"name": "Morning", "max_articles": 10},
+            "sources": [{"id": "feed", "name": "Feed", "type": "rss", "url": "https://feed.test/rss"}],
+            "editorial": {"categories": ["technology"], "min_content_words": 1},
+            "llm": {"enabled": True},
+        }
+    )
+    now = datetime.now(UTC)
+    article = Article(
+        id="story-id",
+        source_id="feed",
+        title="Technology story",
+        url="https://feed.test/story",
+        fetched_at=now,
+        content_text="A story body with enough words for processing.",
+        category="engineering",
+    )
+    pipeline = EditorialPipeline()
+    candidates = pipeline.process([article], ProcessingContext(config, now, selection_limit=10))
+    edited = candidates[0].model_copy(update={"category": "Technology"})
+    assert EditorialPipeline.filter_categories([edited], config.editorial.categories) == [edited]

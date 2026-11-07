@@ -20,6 +20,9 @@ def test_persists_and_reloads_edition(tmp_path) -> None:
         image_url="https://example.test/story.jpg",
         image_media_type="image/jpeg",
         image_data=b"image-bytes",
+        watchouts=["A caveat."],
+        important_points=["A major point."],
+        llm_curated=True,
     )
     edition = Edition(
         id="e" * 64,
@@ -38,6 +41,9 @@ def test_persists_and_reloads_edition(tmp_path) -> None:
     assert loaded.articles[0].image_url == "https://example.test/story.jpg"
     assert loaded.articles[0].image_media_type == "image/jpeg"
     assert loaded.articles[0].image_data == b"image-bytes"
+    assert loaded.articles[0].watchouts == ["A caveat."]
+    assert loaded.articles[0].important_points == ["A major point."]
+    assert loaded.articles[0].llm_curated is True
 
 
 def test_delivery_and_lease_idempotency(tmp_path) -> None:

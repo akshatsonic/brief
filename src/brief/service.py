@@ -8,12 +8,13 @@ from zoneinfo import ZoneInfo
 
 from brief.config import AppConfig, FetcherType
 from brief.delivery import DeliveryError, provider_for
-from brief.exporting import write_normalized_articles
+from brief.exporting import write_final_articles, write_normalized_articles
 from brief.fetching import SafeFetcher
+from brief.llm import EditorialError, EditorialProcessor, processor_for
 from brief.models import BuildResult, Edition, EditionStatus
 from brief.persistence import Database
 from brief.processing import EditorialPipeline, ProcessingContext
-from brief.rendering import EpubRenderer, artifact_sha256
+from brief.rendering import PdfRenderer, Renderer, artifact_sha256
 from brief.sources import adapter_for
 
 
@@ -27,15 +28,15 @@ class NewspaperService:
         config: AppConfig,
         database: Database | None = None,
         fetcher: SafeFetcher | None = None,
-        renderer: EpubRenderer | None = None,
+        renderer: Renderer | None = None,
+        editorial_processor: EditorialProcessor | None = None,
+        editorial_backend: str | None = None,
     ):
         self.config = config
         self.database = database or Database(config.database.path)
         self.fetcher = fetcher or SafeFetcher(config.network)
-        self.renderer = renderer or EpubRenderer(
-            theme=config.output.theme,
-            template_directory=config.output.template_directory,
-        )
+        self.renderer = renderer or PdfRenderer(template_directory=config.output.template_directory)
+        self.editorial_processor = editorial_processor or processor_for(config.llm, editorial_backend)
 
     async def build(self, publication_date: date | None = None, *, dry_run: bool = False) -> BuildResult:
         zone = ZoneInfo(self.config.publication.timezone)
@@ -45,20 +46,23 @@ class NewspaperService:
         if not dry_run:
             self.database.migrate()
             existing = self.database.load_edition(self.config.publication.name, target_date)
-            if existing is not None:
-                if existing.artifact_path and existing.artifact_path.is_file():
-                    normalized_articles = write_normalized_articles(existing, self.config.output.directory)
+            if existing is not None and existing.articles and all(article.llm_curated for article in existing.articles):
+                final_articles = write_final_articles(existing, self.config.output.directory)
+                if (
+                    existing.artifact_path
+                    and existing.artifact_path.suffix.casefold() == ".pdf"
+                    and existing.artifact_path.is_file()
+                ):
                     return BuildResult(
                         edition=existing,
                         discovered_count=0,
                         selected_count=len(existing.articles),
                         artifact=existing.artifact_path,
-                        normalized_articles=normalized_articles,
+                        final_articles=final_articles,
                         diagnostics=["reused persisted edition"],
                     )
                 if existing.articles:
-                    normalized_articles = write_normalized_articles(existing, self.config.output.directory)
-                    artifact = self.renderer.render(existing, self.config.output.directory)
+                    artifact = await self.renderer.render(existing, self.config.output.directory)
                     existing = existing.model_copy(
                         update={
                             "artifact_path": artifact,
@@ -71,7 +75,7 @@ class NewspaperService:
                         discovered_count=0,
                         selected_count=len(existing.articles),
                         artifact=artifact,
-                        normalized_articles=normalized_articles,
+                        final_articles=final_articles,
                         diagnostics=["regenerated artifact from persisted edition"],
                     )
         diagnostics: list[str] = []
@@ -92,7 +96,11 @@ class NewspaperService:
                         articles.append(outcome)
             except Exception as error:
                 diagnostics.append(f"{source.id}: {type(error).__name__}: {error}")
-        selected = EditorialPipeline().process(articles, ProcessingContext(config=self.config, cutoff=cutoff))
+        selection_limit = max(self.config.publication.max_articles, self.config.llm.max_input_articles)
+        selected = EditorialPipeline().process(
+            articles,
+            ProcessingContext(config=self.config, cutoff=cutoff, selection_limit=selection_limit),
+        )
         if dry_run:
             return BuildResult(
                 edition=None,
@@ -100,13 +108,47 @@ class NewspaperService:
                 selected_count=len(selected),
                 diagnostics=diagnostics,
             )
-        if self.config.output.include_images:
-            selected = await _embed_article_images(selected, self.config, self.fetcher, diagnostics)
         if not selected:
             raise BuildError("no qualifying articles were found; " + "; ".join(diagnostics[:3]))
+        edition_id = hashlib.sha256(f"{self.config.publication.name}\n{target_date.isoformat()}".encode()).hexdigest()
+        created_at = datetime.now(UTC)
+        scraped_edition = Edition(
+            id=edition_id,
+            publication_name=self.config.publication.name,
+            publication_date=target_date,
+            timezone=self.config.publication.timezone,
+            language=self.config.publication.language,
+            articles=selected,
+            created_at=created_at,
+        )
+        normalized_articles = write_normalized_articles(scraped_edition, self.config.output.directory)
+        try:
+            selected = await asyncio.to_thread(
+                self.editorial_processor.process,
+                selected,
+                self.config.publication.max_articles,
+            )
+        except EditorialError as error:
+            raise BuildError(str(error)) from error
+        if not selected:
+            raise BuildError(
+                "the editorial model returned no articles from "
+                f"{discovered_count} discovered items and "
+                f"{len(scraped_edition.articles)} eligible candidates. "
+                "Check the scraped JSON, source content quality, configured genre allowlist, and selected backend."
+            )
+        if self.config.editorial.categories:
+            selected = EditorialPipeline.filter_categories(selected, self.config.editorial.categories)
+            if not selected:
+                raise BuildError(
+                    "the editorial model selected stories, but none matched editorial.categories: "
+                    + ", ".join(self.config.editorial.categories)
+                    + ". Update the allowlist in brief.yaml or clear it to include all genres."
+                )
+        if self.config.output.include_images:
+            selected = await _embed_article_images(selected, self.config, self.fetcher, diagnostics)
         self.database.migrate()
         self.database.sync_sources(self.config.sources)
-        edition_id = hashlib.sha256(f"{self.config.publication.name}\n{target_date.isoformat()}".encode()).hexdigest()
         edition = Edition(
             id=edition_id,
             publication_name=self.config.publication.name,
@@ -114,15 +156,15 @@ class NewspaperService:
             timezone=self.config.publication.timezone,
             language=self.config.publication.language,
             articles=selected,
-            created_at=datetime.now(UTC),
+            created_at=created_at,
         )
         for article in selected:
             self.database.save_article(article)
         self.database.save_edition(edition)
-        normalized_articles = write_normalized_articles(edition, self.config.output.directory)
+        final_articles = write_final_articles(edition, self.config.output.directory)
         run_id = self.database.begin_run("build", edition_id)
         try:
-            artifact = self.renderer.render(edition, self.config.output.directory)
+            artifact = await self.renderer.render(edition, self.config.output.directory)
             edition = edition.model_copy(
                 update={
                     "status": EditionStatus.BUILT,
@@ -145,6 +187,7 @@ class NewspaperService:
             selected_count=len(selected),
             artifact=artifact,
             normalized_articles=normalized_articles,
+            final_articles=final_articles,
             diagnostics=diagnostics,
         )
 

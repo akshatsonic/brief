@@ -130,12 +130,23 @@ class EditorialConfig(StrictModel):
 
 
 class OutputConfig(StrictModel):
-    format: Literal["epub"] = "epub"
-    theme: Literal["classic", "magazine"] = "magazine"
+    format: Literal["pdf"] = "pdf"
+    theme: Literal["magazine"] = "magazine"
     directory: ConfigPath = Path("./output")
     template_directory: ConfigPath | None = None
     include_images: bool = True
     max_image_mb: int = Field(default=5, ge=1, le=25)
+
+
+class LlmConfig(StrictModel):
+    enabled: bool = True
+    backend: Literal["codex-api", "codex-cli"] = "codex-api"
+    model: str = Field(default="gpt-6-astra", min_length=1, max_length=120)
+    api_key_env: str = Field(default="OPENAI_API_KEY", pattern=r"^[A-Z][A-Z0-9_]*$")
+    timeout_seconds: float = Field(default=120, ge=10, le=600)
+    max_input_articles: int = Field(default=60, ge=1, le=200)
+    codex_command: str = Field(default="codex", pattern=r"^[a-zA-Z0-9._/-]+$")
+    codex_model: str | None = Field(default=None, min_length=1, max_length=120)
 
 
 class DeliveryConfig(StrictModel):
@@ -173,6 +184,7 @@ class AppConfig(StrictModel):
     sources: list[SourceConfig]
     editorial: EditorialConfig = Field(default_factory=EditorialConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    llm: LlmConfig = Field(default_factory=LlmConfig)
     delivery: DeliveryConfig = Field(default_factory=DeliveryConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)

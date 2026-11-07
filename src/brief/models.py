@@ -26,6 +26,9 @@ class Article(Model):
     image_url: str | None = None
     image_media_type: str | None = None
     image_data: bytes | None = None
+    watchouts: list[str] = Field(default_factory=list)
+    important_points: list[str] = Field(default_factory=list)
+    llm_curated: bool = False
     category: str | None = None
     language: str | None = None
 
@@ -94,4 +97,5 @@ class BuildResult(Model):
     selected_count: int
     artifact: Path | None = None
     normalized_articles: Path | None = None
+    final_articles: Path | None = None
     diagnostics: list[str] = Field(default_factory=list)

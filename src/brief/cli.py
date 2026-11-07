@@ -65,7 +65,7 @@ def initialize(
         },
         "sources": [],
         "editorial": {"deduplicate": True, "max_age_hours": 36, "categories": []},
-        "output": {"format": "epub", "theme": "classic", "directory": "./output"},
+        "output": {"format": "epub", "theme": "magazine", "directory": "./output"},
         "delivery": {"provider": "local"},
     }
     try:
@@ -285,6 +285,15 @@ def doctor(
         checks.append(("Output", os.access(loaded.output.directory, os.W_OK), str(loaded.output.directory)))
     except OSError as error:
         checks.append(("Output", False, str(error)))
+    if loaded.output.template_directory is not None:
+        template_directory = loaded.output.template_directory
+        checks.append(
+            (
+                "Templates",
+                template_directory.is_dir(),
+                str(template_directory) if template_directory.is_dir() else "directory does not exist",
+            )
+        )
     if any(source.fetcher is FetcherType.BROWSER for source in loaded.sources):
         checks.append(("Browser", True, "configured; run `scrapling install` before first use"))
     checks.append(

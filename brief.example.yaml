@@ -31,7 +31,13 @@ editorial:
   min_content_words: 40
   categories: [technology, engineering]
   category_rules: []
-output: {format: epub, theme: classic, directory: ./output}
+output:
+  format: epub
+  theme: magazine
+  directory: ./output
+  include_images: true
+  max_image_mb: 5
+  # template_directory: ./themes/my-magazine
 database: {path: ./.brief/brief.db}
 network:
   timeout_seconds: 30

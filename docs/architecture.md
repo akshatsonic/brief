@@ -11,8 +11,9 @@ SQLite ← run/edition state ← orchestration → EPUB renderer → delivery
 
 Configuration is validated before I/O. Source adapters normalize to `Article`; the model includes
 an optional `image_url` discovered from feed metadata or standard page metadata. Missing,
-malformed, or unsafe image URLs normalize to `None`. The EPUB renderer does not embed remote
-images yet. Safe fetching owns URL/DNS checks, robots, rate limits, timeouts, size limits, and
+malformed, or unsafe image URLs normalize to `None`. After editorial selection, supported images
+are fetched through the same safety boundary and embedded in the EPUB. Safe fetching owns URL/DNS
+checks, robots, rate limits, timeouts, size limits, and
 HTTP/browser selection. Processing is deterministic and offline. SQLite constraints and a lease
 provide restart safety and delivery idempotency. Rendering and delivery remain separate so
 `build` never sends mail.

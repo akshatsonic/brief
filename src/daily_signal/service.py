@@ -80,13 +80,7 @@ class NewspaperService:
             try:
                 items = await adapter.discover()
                 discovered_count += len(items)
-                semaphore = asyncio.Semaphore(4)
-
-                async def extract(item):
-                    async with semaphore:
-                        return await adapter.extract(item)
-
-                outcomes = await asyncio.gather(*(extract(item) for item in items), return_exceptions=True)
+                outcomes = await _extract_items(adapter, items)
                 for outcome in outcomes:
                     if isinstance(outcome, BaseException):
                         diagnostics.append(f"{source.id}: {type(outcome).__name__}: {outcome}")
@@ -193,4 +187,14 @@ def _cutoff(target: date, zone: ZoneInfo) -> datetime:
     next_midnight = datetime.combine(target + timedelta(days=1), time.min, zone)
     now = datetime.now(zone)
     return min(now, next_midnight - timedelta(microseconds=1))
+
+
+async def _extract_items(adapter, items):
+    semaphore = asyncio.Semaphore(4)
+
+    async def extract(item):
+        async with semaphore:
+            return await adapter.extract(item)
+
+    return await asyncio.gather(*(extract(item) for item in items), return_exceptions=True)
 

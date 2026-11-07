@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 import sqlite3
 from datetime import date
@@ -324,7 +325,7 @@ def _load(path: Path) -> AppConfig:
 def _source_id(url: str) -> str:
     host = url.split("//", 1)[-1].split("/", 1)[0].split(":", 1)[0]
     value = "-".join(part for part in host.split(".") if part not in {"www", "com", "org", "net"})
-    return (value or "source")[:64]
+    return (re.sub(r"[^a-z0-9_-]+", "-", value.casefold()).strip("-") or "source")[:64]
 
 
 def _fail(message: str) -> None:

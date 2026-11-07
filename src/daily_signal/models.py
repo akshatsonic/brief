@@ -5,7 +5,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class Model(BaseModel):
@@ -25,6 +25,13 @@ class Article(Model):
     summary: str | None = None
     category: str | None = None
     language: str | None = None
+
+    @field_validator("published_at", "fetched_at")
+    @classmethod
+    def require_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("article datetimes must include a timezone")
+        return value
 
 
 class DiscoveredItem(Model):

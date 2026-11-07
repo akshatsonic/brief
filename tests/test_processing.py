@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -71,3 +71,26 @@ def test_pipeline_deduplicates_and_orders() -> None:
     ]
     result = EditorialPipeline().process(articles, ProcessingContext(config, now))
     assert [article.source_id for article in result] == ["one"]
+
+
+def test_pipeline_filters_stale_articles() -> None:
+    config = AppConfig.model_validate(
+        {
+            "publication": {"name": "Paper"},
+            "sources": [
+                {"id": "one", "name": "One", "type": "rss", "url": "https://one.test"}
+            ],
+            "editorial": {"min_content_words": 1, "max_age_hours": 24},
+        }
+    )
+    now = datetime(2026, 1, 2, tzinfo=UTC)
+    stale = Article(
+        id="x",
+        source_id="one",
+        title="Old",
+        url="https://one.test/old",
+        fetched_at=now,
+        published_at=now - timedelta(hours=25),
+        content_text="content",
+    )
+    assert EditorialPipeline().process([stale], ProcessingContext(config, now)) == []

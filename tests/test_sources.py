@@ -3,6 +3,7 @@ from pathlib import Path
 from scrapling.parser import Selector
 
 from daily_signal.config import SourceConfig
+from daily_signal.models import DiscoveredItem
 from daily_signal.sources import RssSourceAdapter, WebsiteSourceAdapter
 
 
@@ -71,4 +72,22 @@ async def test_website_discovery_and_extraction() -> None:
     assert article.title == "Fixture Story"
     assert article.author == "Reporter"
     assert "clean local content" in article.content_text
+
+
+async def test_malformed_html_is_extracted_without_scripts() -> None:
+    story = "https://example.test/broken"
+    source = SourceConfig(
+        id="broken",
+        name="Broken",
+        type="website",
+        url="https://example.test",
+        extraction={"content": "article", "title": "h1"},
+    )
+    adapter = WebsiteSourceAdapter(
+        source,
+        FakeFetcher({story: (FIXTURES / "malformed.html").read_text()}),
+    )
+    article = await adapter.extract(DiscoveredItem(source_id="broken", url=story))
+    assert article.title == "Malformed story"
+    assert "window.bad" not in (article.content_html or "")
 

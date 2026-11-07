@@ -59,7 +59,7 @@ class PaginationConfig(StrictModel):
 
 
 class SourceConfig(StrictModel):
-    id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,63}$")
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")
     name: str = Field(min_length=1, max_length=120)
     type: SourceType
     url: str

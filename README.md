@@ -13,8 +13,8 @@ EPUB 3 edition, and optionally submits it to Kindle over SMTP. It has no LLM dep
 - Optional: Scrapling's browser for JavaScript-rendered sources
 
 ```bash
-git clone <your-fork-url> daily-signal
-cd daily-signal
+git clone <your-fork-url> brief
+cd brief
 uv sync --extra dev
 uv run daily-signal init
 uv run daily-signal source add https://news.ycombinator.com/rss

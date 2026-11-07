@@ -149,6 +149,11 @@ discovered item. `network.max_concurrent_sources` controls how many sources Brie
 (default 4). This uses asynchronous tasks rather than OS threads. Brief still applies each source's
 request delay per website origin.
 
+Article images are downloaded and embedded in the PDF when available. Brief supports common browser
+raster formats: JPEG, PNG, GIF, WebP, AVIF, BMP, and ICO. SVG is intentionally excluded from inline
+embedding. On a same-date rebuild, Brief retries missing image downloads and regenerates the PDF if
+any image succeeds.
+
 ## Magazine design
 
 The built-in template creates a 6 × 9 inch PDF, with one feature story per page, an optional image,

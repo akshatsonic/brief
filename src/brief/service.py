@@ -47,11 +47,33 @@ class NewspaperService:
             self.database.migrate()
             existing = self.database.load_edition(self.config.publication.name, target_date)
             if existing is not None and existing.articles and all(article.llm_curated for article in existing.articles):
+                image_diagnostics: list[str] = []
+                retried_images = False
+                if self.config.output.include_images:
+                    missing_images = [
+                        article for article in existing.articles if article.image_url and not article.image_data
+                    ]
+                    if missing_images:
+                        refreshed = await _embed_article_images(
+                            missing_images, self.config, self.fetcher, image_diagnostics
+                        )
+                        by_id = {article.id: article for article in refreshed}
+                        retried_images = any(article.image_data for article in refreshed)
+                        existing = existing.model_copy(
+                            update={
+                                "articles": [by_id.get(article.id, article) for article in existing.articles]
+                            }
+                        )
+                        if retried_images:
+                            for article in refreshed:
+                                self.database.save_article(article)
+                            self.database.save_edition(existing)
                 final_articles = write_final_articles(existing, self.config.output.directory)
                 if (
                     existing.artifact_path
                     and existing.artifact_path.suffix.casefold() == ".pdf"
                     and existing.artifact_path.is_file()
+                    and not retried_images
                 ):
                     return BuildResult(
                         edition=existing,
@@ -59,7 +81,7 @@ class NewspaperService:
                         selected_count=len(existing.articles),
                         artifact=existing.artifact_path,
                         final_articles=final_articles,
-                        diagnostics=["reused persisted edition"],
+                        diagnostics=["reused persisted edition", *image_diagnostics],
                     )
                 if existing.articles:
                     artifact = await self.renderer.render(existing, self.config.output.directory)
@@ -76,7 +98,7 @@ class NewspaperService:
                         selected_count=len(existing.articles),
                         artifact=artifact,
                         final_articles=final_articles,
-                        diagnostics=["regenerated artifact from persisted edition"],
+                        diagnostics=["regenerated artifact from persisted edition", *image_diagnostics],
                     )
         diagnostics: list[str] = []
         articles = []
@@ -284,8 +306,6 @@ async def _embed_article_images(articles, config: AppConfig, fetcher: SafeFetche
 def _supported_image_type(response) -> str | None:
     header = response.headers.get("content-type") or response.headers.get("Content-Type") or ""
     media_type = str(header).split(";", 1)[0].strip().lower()
-    if media_type in {"image/jpeg", "image/png", "image/gif"}:
-        return media_type
     body = bytes(response.body[:12])
     if body.startswith(b"\xff\xd8\xff"):
         return "image/jpeg"
@@ -293,4 +313,23 @@ def _supported_image_type(response) -> str | None:
         return "image/png"
     if body.startswith((b"GIF87a", b"GIF89a")):
         return "image/gif"
+    if body.startswith(b"RIFF") and body[8:12] == b"WEBP":
+        return "image/webp"
+    if body.startswith(b"BM"):
+        return "image/bmp"
+    if body.startswith(b"\x00\x00\x01\x00"):
+        return "image/x-icon"
+    if len(body) >= 12 and body[4:8] == b"ftyp" and body[8:12] in {b"avif", b"avis"}:
+        return "image/avif"
+    if media_type in {
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/avif",
+        "image/bmp",
+        "image/x-icon",
+        "image/vnd.microsoft.icon",
+    }:
+        return media_type
     return None

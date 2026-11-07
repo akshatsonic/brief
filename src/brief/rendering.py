@@ -12,6 +12,17 @@ from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, T
 
 from brief.models import Edition
 
+_PDF_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/avif",
+    "image/bmp",
+    "image/x-icon",
+    "image/vnd.microsoft.icon",
+}
+
 
 class Renderer(Protocol):
     async def render(self, edition: Edition, destination: Path) -> Path: ...
@@ -75,7 +86,7 @@ async def _write_pdf_with_chromium(html: str, artifact: Path) -> None:
 
 
 def _image_data_uri(article) -> str | None:
-    if not article.image_data or article.image_media_type not in {"image/jpeg", "image/png", "image/gif"}:
+    if not article.image_data or article.image_media_type not in _PDF_IMAGE_TYPES:
         return None
     encoded = base64.b64encode(article.image_data).decode("ascii")
     return f"data:{article.image_media_type};base64,{encoded}"

@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "daily-signal"
+version = "0.1.0"
+description = "Your sources. Your newspaper. Your schedule."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Daily Signal contributors" }]
+dependencies = [
+  "apscheduler>=3.11,<4",
+  "ebooklib>=0.18,<1",
+  "feedparser>=6.0,<7",
+  "jinja2>=3.1,<4",
+  "nh3>=0.2,<1",
+  "pydantic>=2.10,<3",
+  "pyyaml>=6.0,<7",
+  "rich>=13.9,<15",
+  "scrapling[fetchers]>=0.5.1,<0.6",
+  "typer>=0.15,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<1",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+daily-signal = "daily_signal.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/daily_signal"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/daily_signal", "tests", "README.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+

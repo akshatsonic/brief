@@ -29,15 +29,24 @@ editorial:
   deduplicate: true
   max_age_hours: 36
   min_content_words: 40
-  categories: [technology, engineering]
+  categories: []
   category_rules: []
 output:
-  format: epub
+  format: pdf
   theme: magazine
   directory: ./output
   include_images: true
   max_image_mb: 5
   # template_directory: ./themes/my-magazine
+llm:
+  enabled: true
+  backend: codex-api # codex-api or codex-cli
+  model: gpt-6-astra
+  api_key_env: OPENAI_API_KEY
+  timeout_seconds: 120
+  max_input_articles: 60
+  codex_command: codex
+  codex_model: gpt-6-luna
 database: {path: ./.brief/brief.db}
 network:
   timeout_seconds: 30

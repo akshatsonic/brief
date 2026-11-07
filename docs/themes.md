@@ -1,47 +1,36 @@
-# Publication themes
+# PDF magazine theme
 
-Brief ships with two EPUB themes:
-
-- `magazine` is the default. Each article chapter opens with its available image, category,
-  headline, summary, metadata, and body.
-- `classic` is a quieter newspaper treatment using the same accessible chapter structure.
-
-EPUB is reflowable: Kindle may substitute fonts, change margins, or ignore unsupported CSS. Keep
-templates deliberately simple—one reading column, strong type hierarchy, high contrast, raster
-images, and no JavaScript, animation, fixed positioning, complex grids, or text over images.
+Brief renders a 6 × 9 inch PDF designed for comfortable Kindle reading. The built-in magazine uses
+large type, high contrast, one story per page, an optional full-width image, a short summary,
+important points, watchouts, and the original source link.
 
 ## Custom templates
 
-Set `output.template_directory` to a directory relative to `brief.yaml`:
+Set a directory relative to `brief.yaml`:
 
 ```yaml
 output:
+  format: pdf
   theme: magazine
   template_directory: ./themes/my-magazine
 ```
 
-Any of these files in that directory overrides the built-in file of the same name:
+The directory may override:
 
-| File | Template variables |
+| File | Purpose |
 | --- | --- |
-| `cover.xhtml` | `edition` (`edition.display_title` includes the date and weekday) |
-| `section.xhtml` | `category`, `articles`, `article_hrefs` |
-| `article.xhtml` | `article`, `image_href` |
-| `style.css` | none; replaces the selected theme stylesheet |
+| `magazine.html` | Complete Jinja publication template; receives `edition`, `article_images`, and `css` |
+| `style.css` | Replaces the built-in paged-media stylesheet |
 
-You can start from the built-in files in `src/brief/templates/`. For example:
+Start from the built-in files:
 
 ```bash
 mkdir -p themes/my-magazine
-cp src/brief/templates/article.xhtml themes/my-magazine/
-cp src/brief/templates/cover.xhtml themes/my-magazine/
-cp src/brief/templates/section.xhtml themes/my-magazine/
-cp src/brief/templates/magazine.css themes/my-magazine/style.css
+cp src/brief/templates/magazine.html themes/my-magazine/
+cp src/brief/templates/magazine-pdf.css themes/my-magazine/style.css
 ```
 
-Keep `image_href` conditional. Some articles have no usable image, and the layout should close that
-space instead of showing a placeholder. Do not load remote assets from a template: article images
-are validated and packaged by Brief so the edition works offline.
-
-Run `brief build`, then validate the result with EPUBCheck. Test on a physical Kindle or the Kindle
-Previewer too, because EPUBCheck verifies structure rather than the exact rendering of a device.
+Keep `@page { size: 6in 9in; }` and use print-safe CSS. Article images are packaged as data URLs;
+templates should never fetch remote assets. Keep image rendering conditional because some stories
+have no usable image. Test custom themes on the actual target Kindle as well as a desktop PDF
+reader.

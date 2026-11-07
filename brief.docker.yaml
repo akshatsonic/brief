@@ -12,7 +12,8 @@ sources:
 editorial:
   deduplicate: true
   max_age_hours: 36
-  categories: [technology]
-output: {format: epub, theme: classic, directory: /output}
+  categories: []
+output: {format: pdf, theme: magazine, directory: /output}
+llm: {enabled: true, backend: codex-api, model: gpt-6-astra, api_key_env: OPENAI_API_KEY}
 database: {path: /data/brief.db}
 delivery: {provider: local}

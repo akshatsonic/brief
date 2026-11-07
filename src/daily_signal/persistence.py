@@ -211,6 +211,51 @@ class Database:
                 (publication_name, publication_date.isoformat()),
             ).fetchone()
 
+    def load_edition(self, publication_name: str, publication_date: date) -> Edition | None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM editions WHERE publication_name=? AND publication_date=?",
+                (publication_name, publication_date.isoformat()),
+            ).fetchone()
+            if row is None:
+                return None
+            article_rows = connection.execute(
+                """SELECT a.* FROM articles a JOIN edition_articles ea ON ea.article_id=a.id
+                WHERE ea.edition_id=? ORDER BY ea.position""",
+                (row["id"],),
+            ).fetchall()
+        articles = [
+            Article(
+                id=item["id"],
+                source_id=item["source_id"],
+                title=item["title"],
+                url=item["canonical_url"],
+                author=item["author"],
+                published_at=datetime.fromisoformat(item["published_at"])
+                if item["published_at"]
+                else None,
+                fetched_at=datetime.fromisoformat(item["fetched_at"]),
+                content_html=item["content_html"],
+                content_text=item["content_text"],
+                summary=item["summary"],
+                category=item["category"],
+                language=item["language"],
+            )
+            for item in article_rows
+        ]
+        return Edition(
+            id=row["id"],
+            publication_name=row["publication_name"],
+            publication_date=date.fromisoformat(row["publication_date"]),
+            timezone=row["timezone"],
+            language=row["language"],
+            articles=articles,
+            created_at=datetime.fromisoformat(row["created_at"]),
+            status=EditionStatus(row["status"]),
+            artifact_path=Path(row["artifact_path"]) if row["artifact_path"] else None,
+            artifact_sha256=row["artifact_sha256"],
+        )
+
     def begin_run(self, kind: str, edition_id: str | None = None) -> str:
         run_id = uuid.uuid4().hex
         with self.connect() as connection:

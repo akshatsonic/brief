@@ -38,6 +38,38 @@ class NewspaperService:
         today = datetime.now(zone).date()
         target_date = publication_date or today
         cutoff = _cutoff(target_date, zone)
+        if not dry_run:
+            self.database.migrate()
+            existing = self.database.load_edition(
+                self.config.publication.name, target_date
+            )
+            if existing is not None:
+                if existing.artifact_path and existing.artifact_path.is_file():
+                    return BuildResult(
+                        edition=existing,
+                        discovered_count=0,
+                        selected_count=len(existing.articles),
+                        artifact=existing.artifact_path,
+                        diagnostics=["reused persisted edition"],
+                    )
+                if existing.articles:
+                    artifact = self.renderer.render(
+                        existing, self.config.output.directory
+                    )
+                    existing = existing.model_copy(
+                        update={
+                            "artifact_path": artifact,
+                            "artifact_sha256": artifact_sha256(artifact),
+                        }
+                    )
+                    self.database.save_edition(existing)
+                    return BuildResult(
+                        edition=existing,
+                        discovered_count=0,
+                        selected_count=len(existing.articles),
+                        artifact=artifact,
+                        diagnostics=["regenerated artifact from persisted edition"],
+                    )
         diagnostics: list[str] = []
         articles = []
         discovered_count = 0

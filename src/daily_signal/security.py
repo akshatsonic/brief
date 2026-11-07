@@ -29,6 +29,11 @@ def canonicalize_url(url: str) -> str:
     if parts.username or parts.password:
         raise UnsafeUrlError("URLs containing credentials are not allowed")
     host = parts.hostname.encode("idna").decode("ascii").lower()
+    try:
+        if ipaddress.ip_address(host).version == 6:
+            host = f"[{host}]"
+    except ValueError:
+        pass
     port = parts.port
     if port and not ((parts.scheme.lower() == "http" and port == 80) or (parts.scheme.lower() == "https" and port == 443)):
         host = f"{host}:{port}"

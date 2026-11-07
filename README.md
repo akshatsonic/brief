@@ -6,26 +6,111 @@ Brief is a self-hosted, CLI-first personal newspaper engine. It discovers articl
 RSS/Atom feeds and websites, applies deterministic editorial rules, creates a Kindle-friendly
 EPUB 3 edition, and optionally submits it to Kindle over SMTP. It has no LLM dependency.
 
-## Requirements and installation
+## Run locally
 
 - Python 3.12 or newer
 - [uv](https://docs.astral.sh/uv/)
-- Optional: Scrapling's browser for JavaScript-rendered sources
+- Git
+
+### 1. Clone and install
 
 ```bash
-git clone <your-fork-url> brief
+git clone https://github.com/akshatsonic/brief.git
 cd brief
-uv sync --extra dev
+uv sync
+uv run brief --help
+```
+
+`uv sync` creates an isolated `.venv` and installs the locked dependencies. You do not need to
+activate the environment when commands are prefixed with `uv run`.
+
+### 2. Create the configuration
+
+Use the interactive setup:
+
+```bash
 uv run brief init
+```
+
+This creates `brief.yaml`, `output/`, and the local state directory. Alternatively, start from the
+example and edit it:
+
+```bash
+cp brief.example.yaml brief.yaml
+```
+
+At minimum, configure a publication name and one source. Relative output and database paths are
+resolved from the directory containing `brief.yaml`.
+
+### 3. Add and test sources
+
+Add an RSS feed or website interactively:
+
+```bash
 uv run brief source add https://news.ycombinator.com/rss
 uv run brief source list
+uv run brief source test hackernews
+```
+
+`source add` detects RSS/Atom feeds. For websites it asks for discovery and extraction selectors.
+Standard HTTP is used by default.
+
+For a JavaScript-rendered website, install Scrapling's browser once:
+
+```bash
+uv run scrapling install
+```
+
+Then set that source's `fetcher` to `browser`. Brief does not enable challenge solving or bypass
+access controls.
+
+### 4. Check the installation
+
+```bash
+uv run brief doctor
+```
+
+The doctor checks configuration, database and output access, source connectivity, optional browser
+requirements, and SMTP settings when Kindle delivery is enabled. Use `--skip-network` when you only
+want local checks.
+
+### 5. Build an edition
+
+First inspect what would be selected without writing anything:
+
+```bash
 uv run brief build --dry-run
+```
+
+Then generate the EPUB:
+
+```bash
 uv run brief build
 ```
 
-Once published to PyPI, `pipx install brief` exposes the same command. Every command has
-`--help`. For JavaScript sources, run `uv run scrapling install`, then explicitly configure
-`fetcher: browser`. HTTP remains the default; Brief never enables challenge solving.
+The generated newspaper is written to `output/`, for example:
+
+```text
+output/the-morning-brief-2026-11-07.epub
+```
+
+SQLite state is stored at `.brief/brief.db` by default. Both locations can be changed in
+`brief.yaml`.
+
+Useful commands:
+
+```bash
+uv run brief build --date 2026-11-07  # build a specific edition date
+uv run brief runs                     # show execution history
+uv run brief publish --now            # build and run the configured delivery provider
+uv run brief serve                    # run the foreground scheduler
+```
+
+`serve` must remain running. Use Docker, systemd, launchd, or another supervisor for unattended
+daily publishing.
+
+Once published to PyPI, `pipx install brief` will expose the command without `uv run`. Every command
+and subcommand supports `--help`.
 
 ## Configuration and usage
 
@@ -33,13 +118,6 @@ Copy [`brief.example.yaml`](brief.example.yaml) for a complete starting point. P
 are resolved relative to the YAML file. Required fields are publication name and each source's ID,
 name, type, and URL. RSS sources support `fetch_article: auto|always|never`. Website selectors are
 optional, and pagination occurs only with an explicit next selector and bounded page count.
-
-```bash
-uv run brief source test hackernews
-uv run brief build --date 2026-11-07
-uv run brief runs
-uv run brief doctor
-```
 
 ## Kindle delivery
 

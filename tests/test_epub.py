@@ -1,8 +1,8 @@
 from datetime import UTC, date, datetime
 from zipfile import ZipFile
 
-from daily_signal.models import Article, Edition
-from daily_signal.rendering import EpubRenderer
+from brief.models import Article, Edition
+from brief.rendering import EpubRenderer
 
 
 def test_builds_epub_with_navigation_and_article(tmp_path) -> None:

@@ -7,8 +7,8 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Protocol
 
-from daily_signal.config import DeliveryConfig
-from daily_signal.models import DeliveryResult, DeliveryStatus, Edition
+from brief.config import DeliveryConfig
+from brief.models import DeliveryResult, DeliveryStatus, Edition
 
 
 class DeliveryError(RuntimeError):
@@ -42,7 +42,7 @@ class KindleSmtpDeliveryProvider:
         if artifact.stat().st_size > maximum:
             raise DeliveryError(f"attachment exceeds {self.config.max_attachment_mb} MiB limit")
         settings = _smtp_settings()
-        recipient = os.getenv("DAILY_SIGNAL_KINDLE_EMAIL") or self.config.kindle_email
+        recipient = os.getenv("BRIEF_KINDLE_EMAIL") or self.config.kindle_email
         if not recipient:
             raise DeliveryError("Kindle email address is not configured")
         if dry_run:
@@ -56,7 +56,7 @@ class KindleSmtpDeliveryProvider:
         message["From"] = settings["sender"]
         message["To"] = recipient
         message.set_content(
-            "Daily Signal EPUB delivery. SMTP acceptance does not guarantee Kindle import."
+            "Brief EPUB delivery. SMTP acceptance does not guarantee Kindle import."
         )
         message.add_attachment(
             artifact.read_bytes(),
@@ -94,24 +94,24 @@ def provider_for(config: DeliveryConfig) -> DeliveryProvider:
 
 def _smtp_settings() -> dict[str, str | int]:
     required = {
-        "host": os.getenv("DAILY_SIGNAL_SMTP_HOST"),
-        "username": os.getenv("DAILY_SIGNAL_SMTP_USERNAME"),
-        "password": os.getenv("DAILY_SIGNAL_SMTP_PASSWORD"),
+        "host": os.getenv("BRIEF_SMTP_HOST"),
+        "username": os.getenv("BRIEF_SMTP_USERNAME"),
+        "password": os.getenv("BRIEF_SMTP_PASSWORD"),
     }
     missing = [name for name, value in required.items() if not value]
     if missing:
         raise DeliveryError("missing SMTP environment variables: " + ", ".join(missing))
-    security = os.getenv("DAILY_SIGNAL_SMTP_SECURITY", "starttls").lower()
+    security = os.getenv("BRIEF_SMTP_SECURITY", "starttls").lower()
     if security not in {"starttls", "ssl"}:
-        raise DeliveryError("DAILY_SIGNAL_SMTP_SECURITY must be starttls or ssl")
+        raise DeliveryError("BRIEF_SMTP_SECURITY must be starttls or ssl")
     default_port = "465" if security == "ssl" else "587"
     try:
-        port = int(os.getenv("DAILY_SIGNAL_SMTP_PORT", default_port))
+        port = int(os.getenv("BRIEF_SMTP_PORT", default_port))
     except ValueError as error:
-        raise DeliveryError("DAILY_SIGNAL_SMTP_PORT must be an integer") from error
+        raise DeliveryError("BRIEF_SMTP_PORT must be an integer") from error
     return {
         **required,
-        "sender": os.getenv("DAILY_SIGNAL_SMTP_FROM") or required["username"],
+        "sender": os.getenv("BRIEF_SMTP_FROM") or required["username"],
         "security": security,
         "port": port,
     }

@@ -2,16 +2,16 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from daily_signal.config import AppConfig
-from daily_signal.models import Article
-from daily_signal.processing import (
+from brief.config import AppConfig
+from brief.models import Article
+from brief.processing import (
     EditorialPipeline,
     ProcessingContext,
     content_fingerprint,
     normalize_text,
     sanitize_html,
 )
-from daily_signal.security import UnsafeUrlError, canonicalize_url, validate_public_url
+from brief.security import UnsafeUrlError, canonicalize_url, validate_public_url
 
 
 def test_canonicalize_url_removes_tracking_and_fragment() -> None:

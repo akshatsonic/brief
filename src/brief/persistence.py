@@ -8,9 +8,9 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from daily_signal.config import SourceConfig
-from daily_signal.models import Article, Edition, EditionStatus
-from daily_signal.processing import content_fingerprint
+from brief.config import SourceConfig
+from brief.models import Article, Edition, EditionStatus
+from brief.processing import content_fingerprint
 
 
 SCHEMA = """

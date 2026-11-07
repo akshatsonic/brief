@@ -2,9 +2,9 @@ from pathlib import Path
 
 from scrapling.parser import Selector
 
-from daily_signal.config import SourceConfig
-from daily_signal.models import DiscoveredItem
-from daily_signal.sources import RssSourceAdapter, WebsiteSourceAdapter
+from brief.config import SourceConfig
+from brief.models import DiscoveredItem
+from brief.sources import RssSourceAdapter, WebsiteSourceAdapter
 
 
 FIXTURES = Path(__file__).parent / "fixtures"

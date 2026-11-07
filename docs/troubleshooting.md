@@ -1,6 +1,6 @@
 # Troubleshooting
 
-- **Configuration:** run `daily-signal doctor`. Unknown fields are rejected. Relative paths are
+- **Configuration:** run `brief doctor`. Unknown fields are rejected. Relative paths are
   relative to the YAML file.
 - **No articles:** run `source test <id>` and check selectors, robots, age, category allowlists, and
   minimum word count. Try `fetch_article: always` for summary-only feeds.

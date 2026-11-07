@@ -9,8 +9,8 @@ from urllib.robotparser import RobotFileParser
 
 from scrapling.fetchers import AsyncStealthySession, FetcherSession
 
-from daily_signal.config import FetcherType, NetworkConfig, SourceConfig
-from daily_signal.security import validate_public_url
+from brief.config import FetcherType, NetworkConfig, SourceConfig
+from brief.security import validate_public_url
 
 
 class FetchError(RuntimeError):

@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "daily-signal"
+name = "brief"
 version = "0.1.0"
 description = "Your sources. Your newspaper. Your schedule."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "Daily Signal contributors" }]
+authors = [{ name = "Brief contributors" }]
 dependencies = [
   "apscheduler>=3.11,<4",
   "ebooklib>=0.18,<1",
@@ -32,13 +32,13 @@ dev = [
 ]
 
 [project.scripts]
-daily-signal = "daily_signal.cli:app"
+brief = "brief.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/daily_signal"]
+packages = ["src/brief"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/daily_signal", "tests", "README.md", "LICENSE"]
+include = ["src/brief", "tests", "README.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

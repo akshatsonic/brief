@@ -8,6 +8,6 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-.daily-signal/
+.brief/
 output/
 

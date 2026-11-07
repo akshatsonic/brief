@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping improve Daily Signal. Open an issue before large behavioral changes. Small
+Thank you for helping improve Brief. Open an issue before large behavioral changes. Small
 fixes may go directly to a focused pull request.
 
 1. Install Python 3.12+ and uv, then run `uv sync --extra dev`.

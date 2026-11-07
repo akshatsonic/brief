@@ -32,7 +32,7 @@ editorial:
   categories: [technology, engineering]
   category_rules: []
 output: {format: epub, theme: classic, directory: ./output}
-database: {path: ./.daily-signal/daily-signal.db}
+database: {path: ./.brief/brief.db}
 network:
   timeout_seconds: 30
   max_response_mb: 10

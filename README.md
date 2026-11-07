@@ -1,8 +1,8 @@
-# Daily Signal
+# Brief
 
 **Your sources. Your newspaper. Your schedule.**
 
-Daily Signal is a self-hosted, CLI-first personal newspaper engine. It discovers articles from
+Brief is a self-hosted, CLI-first personal newspaper engine. It discovers articles from
 RSS/Atom feeds and websites, applies deterministic editorial rules, creates a Kindle-friendly
 EPUB 3 edition, and optionally submits it to Kindle over SMTP. It has no LLM dependency.
 
@@ -16,46 +16,46 @@ EPUB 3 edition, and optionally submits it to Kindle over SMTP. It has no LLM dep
 git clone <your-fork-url> brief
 cd brief
 uv sync --extra dev
-uv run daily-signal init
-uv run daily-signal source add https://news.ycombinator.com/rss
-uv run daily-signal source list
-uv run daily-signal build --dry-run
-uv run daily-signal build
+uv run brief init
+uv run brief source add https://news.ycombinator.com/rss
+uv run brief source list
+uv run brief build --dry-run
+uv run brief build
 ```
 
-Once published to PyPI, `pipx install daily-signal` exposes the same command. Every command has
+Once published to PyPI, `pipx install brief` exposes the same command. Every command has
 `--help`. For JavaScript sources, run `uv run scrapling install`, then explicitly configure
-`fetcher: browser`. HTTP remains the default; Daily Signal never enables challenge solving.
+`fetcher: browser`. HTTP remains the default; Brief never enables challenge solving.
 
 ## Configuration and usage
 
-Copy [`daily-signal.example.yaml`](daily-signal.example.yaml) for a complete starting point. Paths
+Copy [`brief.example.yaml`](brief.example.yaml) for a complete starting point. Paths
 are resolved relative to the YAML file. Required fields are publication name and each source's ID,
 name, type, and URL. RSS sources support `fetch_article: auto|always|never`. Website selectors are
 optional, and pagination occurs only with an explicit next selector and bounded page count.
 
 ```bash
-uv run daily-signal source test hackernews
-uv run daily-signal build --date 2026-11-07
-uv run daily-signal runs
-uv run daily-signal doctor
+uv run brief source test hackernews
+uv run brief build --date 2026-11-07
+uv run brief runs
+uv run brief doctor
 ```
 
 ## Kindle delivery
 
 In Amazon's Personal Document Settings, note your Kindle address and approve the SMTP sender.
 Set `delivery.provider: kindle` and `delivery.kindle_email` in YAML (or use
-`DAILY_SIGNAL_KINDLE_EMAIL`). Credentials must only be environment variables:
+`BRIEF_KINDLE_EMAIL`). Credentials must only be environment variables:
 
 ```bash
-export DAILY_SIGNAL_SMTP_HOST=smtp.example.com
-export DAILY_SIGNAL_SMTP_PORT=587
-export DAILY_SIGNAL_SMTP_USERNAME=sender@example.com
-export DAILY_SIGNAL_SMTP_PASSWORD='...'
-export DAILY_SIGNAL_SMTP_FROM=sender@example.com
-export DAILY_SIGNAL_SMTP_SECURITY=starttls  # or ssl
-uv run daily-signal publish --now --dry-run
-uv run daily-signal publish --now
+export BRIEF_SMTP_HOST=smtp.example.com
+export BRIEF_SMTP_PORT=587
+export BRIEF_SMTP_USERNAME=sender@example.com
+export BRIEF_SMTP_PASSWORD='...'
+export BRIEF_SMTP_FROM=sender@example.com
+export BRIEF_SMTP_SECURITY=starttls  # or ssl
+uv run brief publish --now --dry-run
+uv run brief publish --now
 ```
 
 SMTP success means the SMTP server accepted the message, not that Amazon imported it. Successful
@@ -68,8 +68,8 @@ stops it. It uses the configured IANA timezone and cron expression, bounded retr
 prevention, and an expiring SQLite lease.
 
 ```bash
-uv run daily-signal serve
-cp daily-signal.docker.yaml daily-signal.yaml
+uv run brief serve
+cp brief.docker.yaml brief.yaml
 docker compose up --build
 ```
 
@@ -78,7 +78,7 @@ paths so state survives container replacement.
 
 ## EPUB validation
 
-Daily Signal writes EPUB 3 with navigation and NCX compatibility. If
+Brief writes EPUB 3 with navigation and NCX compatibility. If
 [EPUBCheck](https://www.w3.org/publishing/epubcheck/) is installed:
 
 ```bash
@@ -87,7 +87,7 @@ epubcheck output/the-morning-brief-2026-11-07.epub
 
 ## Responsible use
 
-Daily Signal respects robots.txt by default, rejects private/local network targets, applies
+Brief respects robots.txt by default, rejects private/local network targets, applies
 timeouts and size limits, sanitizes article HTML, and does not execute scraped scripts. It does
 not bypass paywalls, authentication, robots rules, or anti-bot challenges.
 

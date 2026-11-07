@@ -1,6 +1,6 @@
 # Architecture
 
-Daily Signal is a modular monolith. Typer commands and APScheduler call the same orchestration
+Brief is a modular monolith. Typer commands and APScheduler call the same orchestration
 service.
 
 ```text

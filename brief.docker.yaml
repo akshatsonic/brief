@@ -14,5 +14,5 @@ editorial:
   max_age_hours: 36
   categories: [technology]
 output: {format: epub, theme: classic, directory: /output}
-database: {path: /data/daily-signal.db}
+database: {path: /data/brief.db}
 delivery: {provider: local}

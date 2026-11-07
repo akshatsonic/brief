@@ -10,9 +10,9 @@ from urllib.parse import urljoin
 
 import nh3
 
-from daily_signal.config import AppConfig, CategoryRule
-from daily_signal.models import Article
-from daily_signal.security import canonicalize_url
+from brief.config import AppConfig, CategoryRule
+from brief.models import Article
+from brief.security import canonicalize_url
 
 
 ALLOWED_TAGS = {

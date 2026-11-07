@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from daily_signal.cli import app
+from brief.cli import app
 
 
 runner = CliRunner()
@@ -14,7 +14,7 @@ def test_top_level_help_lists_product_commands() -> None:
 
 
 def test_init_creates_valid_configuration(tmp_path) -> None:
-    config = tmp_path / "daily-signal.yaml"
+    config = tmp_path / "brief.yaml"
     result = runner.invoke(app, ["init", "--config", str(config)], input="\n\n\n")
     assert result.exit_code == 0
     assert config.exists()

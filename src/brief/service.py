@@ -6,14 +6,14 @@ import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from daily_signal.config import AppConfig
-from daily_signal.delivery import DeliveryError, provider_for
-from daily_signal.fetching import SafeFetcher
-from daily_signal.models import BuildResult, Edition, EditionStatus
-from daily_signal.persistence import Database
-from daily_signal.processing import EditorialPipeline, ProcessingContext
-from daily_signal.rendering import EpubRenderer, artifact_sha256
-from daily_signal.sources import adapter_for
+from brief.config import AppConfig
+from brief.delivery import DeliveryError, provider_for
+from brief.fetching import SafeFetcher
+from brief.models import BuildResult, Edition, EditionStatus
+from brief.persistence import Database
+from brief.processing import EditorialPipeline, ProcessingContext
+from brief.rendering import EpubRenderer, artifact_sha256
+from brief.sources import adapter_for
 
 
 class BuildError(RuntimeError):

@@ -1,8 +1,8 @@
 from datetime import UTC, date, datetime
 
-from daily_signal.config import SourceConfig
-from daily_signal.models import Article, Edition, EditionStatus
-from daily_signal.persistence import Database
+from brief.config import SourceConfig
+from brief.models import Article, Edition, EditionStatus
+from brief.persistence import Database
 
 
 def test_persists_and_reloads_edition(tmp_path) -> None:

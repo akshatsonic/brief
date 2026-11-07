@@ -3,11 +3,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from daily_signal.config import ConfigurationError, load_config
+from brief.config import ConfigurationError, load_config
 
 
 def write_config(tmp_path: Path, data: dict) -> Path:
-    path = tmp_path / "daily-signal.yaml"
+    path = tmp_path / "brief.yaml"
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
     return path
 
@@ -25,7 +25,7 @@ def test_loads_defaults_and_resolves_paths(tmp_path: Path) -> None:
     config = load_config(path)
     assert config.publication.max_articles == 20
     assert config.output.directory == tmp_path / "output"
-    assert config.database.path == tmp_path / ".daily-signal/daily-signal.db"
+    assert config.database.path == tmp_path / ".brief/brief.db"
 
 
 def test_rejects_duplicate_sources(tmp_path: Path) -> None:

@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from daily_signal.config import DeliveryConfig
-from daily_signal.delivery import DeliveryError, KindleSmtpDeliveryProvider
-from daily_signal.models import Edition
+from brief.config import DeliveryConfig
+from brief.delivery import DeliveryError, KindleSmtpDeliveryProvider
+from brief.models import Edition
 
 
 def edition() -> Edition:
@@ -23,9 +23,9 @@ def edition() -> Edition:
 def test_smtp_delivery_uses_attachment_and_starttls(tmp_path, monkeypatch) -> None:
     artifact = tmp_path / "paper.epub"
     artifact.write_bytes(b"epub")
-    monkeypatch.setenv("DAILY_SIGNAL_SMTP_HOST", "smtp.test")
-    monkeypatch.setenv("DAILY_SIGNAL_SMTP_USERNAME", "sender@test")
-    monkeypatch.setenv("DAILY_SIGNAL_SMTP_PASSWORD", "secret")
+    monkeypatch.setenv("BRIEF_SMTP_HOST", "smtp.test")
+    monkeypatch.setenv("BRIEF_SMTP_USERNAME", "sender@test")
+    monkeypatch.setenv("BRIEF_SMTP_PASSWORD", "secret")
     client = MagicMock()
     client.__enter__.return_value = client
     with patch("smtplib.SMTP", return_value=client):

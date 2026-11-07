@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from daily_signal.scheduling import publish_with_retries
+from brief.scheduling import publish_with_retries
 
 
 @pytest.mark.asyncio

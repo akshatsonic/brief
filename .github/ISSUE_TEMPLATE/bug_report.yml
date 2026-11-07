@@ -8,7 +8,7 @@ body:
     attributes: {label: Reproduction steps}
     validations: {required: true}
   - type: input
-    attributes: {label: Daily Signal and Python versions}
+    attributes: {label: Brief and Python versions}
     validations: {required: true}
   - type: textarea
     attributes:

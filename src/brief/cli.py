@@ -15,16 +15,16 @@ from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
-from daily_signal import __version__
-from daily_signal.config import AppConfig, ConfigurationError, FetcherType, SourceConfig, load_config
-from daily_signal.fetching import SafeFetcher
-from daily_signal.persistence import Database
-from daily_signal.scheduling import serve as serve_scheduler
-from daily_signal.service import BuildError, NewspaperService
-from daily_signal.sources import adapter_for
+from brief import __version__
+from brief.config import AppConfig, ConfigurationError, FetcherType, SourceConfig, load_config
+from brief.fetching import SafeFetcher
+from brief.persistence import Database
+from brief.scheduling import serve as serve_scheduler
+from brief.service import BuildError, NewspaperService
+from brief.sources import adapter_for
 
 app = typer.Typer(
-    name="daily-signal",
+    name="brief",
     help="Turn your sources into a personal daily EPUB newspaper.",
     no_args_is_help=True,
 )
@@ -35,7 +35,7 @@ console = Console()
 
 def version_callback(value: bool) -> None:
     if value:
-        console.print(f"daily-signal {__version__}")
+        console.print(f"brief {__version__}")
         raise typer.Exit()
 
 
@@ -50,7 +50,7 @@ def main(
 
 @app.command("init")
 def initialize(
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     force: bool = typer.Option(False, "--force", help="Replace an existing configuration."),
 ) -> None:
     """Interactively create configuration and state directories."""
@@ -78,13 +78,13 @@ def initialize(
     loaded.output.directory.mkdir(parents=True, exist_ok=True)
     loaded.database.path.parent.mkdir(parents=True, exist_ok=True)
     console.print(f"[green]Created[/green] {config}")
-    console.print("Add a source with: [bold]daily-signal source add <url>[/bold]")
+    console.print("Add a source with: [bold]brief source add <url>[/bold]")
 
 
 @source_app.command("add")
 def source_add(
     url: str = typer.Argument(..., help="RSS, Atom, or website listing URL."),
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
 ) -> None:
     """Detect and add an RSS feed or website source."""
     loaded = _load(config)
@@ -125,7 +125,7 @@ def source_add(
 
 
 @source_app.command("list")
-def source_list(config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c")) -> None:
+def source_list(config: Path = typer.Option(Path("brief.yaml"), "--config", "-c")) -> None:
     """List configured sources."""
     loaded = _load(config)
     table = Table("ID", "Name", "Type", "Fetcher", "Category", "Enabled")
@@ -144,7 +144,7 @@ def source_list(config: Path = typer.Option(Path("daily-signal.yaml"), "--config
 @source_app.command("test")
 def source_test(
     source_id: str = typer.Argument(..., help="Configured source identifier."),
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     limit: int = typer.Option(3, min=1, max=10, help="Number of sample articles."),
 ) -> None:
     """Discover and extract sample articles with diagnostics."""
@@ -179,7 +179,7 @@ def source_test(
 
 @app.command()
 def build(
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     publication_date: date | None = typer.Option(None, "--date", help="Edition date (YYYY-MM-DD)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without writing an EPUB."),
 ) -> None:
@@ -204,7 +204,7 @@ def build(
 @app.command()
 def publish(
     now: bool = typer.Option(False, "--now", help="Publish the current edition immediately."),
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without building or sending."),
 ) -> None:
     """Build and deliver an edition now."""
@@ -229,7 +229,7 @@ def publish(
 
 @app.command()
 def runs(
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     limit: int = typer.Option(20, min=1, max=200),
 ) -> None:
     """Show recent publishing and build executions."""
@@ -244,7 +244,7 @@ def runs(
 
 @app.command()
 def serve(
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
 ) -> None:
     """Run the foreground scheduler for Docker or systemd."""
     loaded = _load(config)
@@ -261,7 +261,7 @@ def serve(
 
 @app.command()
 def doctor(
-    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     skip_network: bool = typer.Option(False, "--skip-network", help="Skip source connectivity checks."),
 ) -> None:
     """Validate configuration, database, output, browser, and delivery settings."""
@@ -289,7 +289,7 @@ def doctor(
         )
     )
     if loaded.delivery.provider == "kindle":
-        required = ["DAILY_SIGNAL_SMTP_HOST", "DAILY_SIGNAL_SMTP_USERNAME", "DAILY_SIGNAL_SMTP_PASSWORD"]
+        required = ["BRIEF_SMTP_HOST", "BRIEF_SMTP_USERNAME", "BRIEF_SMTP_PASSWORD"]
         missing = [name for name in required if not os.getenv(name)]
         checks.append(("SMTP", not missing, "missing: " + ", ".join(missing) if missing else "configured"))
     if not skip_network:

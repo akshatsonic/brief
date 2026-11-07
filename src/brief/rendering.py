@@ -9,7 +9,7 @@ from typing import Protocol
 from ebooklib import epub
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from daily_signal.models import Edition
+from brief.models import Edition
 
 
 class Renderer(Protocol):
@@ -19,7 +19,7 @@ class Renderer(Protocol):
 class EpubRenderer:
     def __init__(self) -> None:
         self.environment = Environment(
-            loader=PackageLoader("daily_signal", "templates"),
+            loader=PackageLoader("brief", "templates"),
             autoescape=select_autoescape(["html", "xhtml", "xml"]),
         )
 

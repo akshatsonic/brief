@@ -8,8 +8,8 @@ from zoneinfo import ZoneInfo
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from daily_signal.config import AppConfig
-from daily_signal.service import NewspaperService
+from brief.config import AppConfig
+from brief.service import NewspaperService
 
 log = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ def serve(config: AppConfig) -> None:
     scheduler.add_job(
         job,
         trigger=trigger,
-        id="daily-signal-publish",
+        id="brief-publish",
         replace_existing=True,
         max_instances=1,
         coalesce=True,

@@ -150,14 +150,14 @@ class DeliveryConfig(StrictModel):
 
 
 class DatabaseConfig(StrictModel):
-    path: ConfigPath = Path("./.daily-signal/daily-signal.db")
+    path: ConfigPath = Path("./.brief/brief.db")
 
 
 class NetworkConfig(StrictModel):
     timeout_seconds: float = Field(default=30, ge=1, le=120)
     max_response_mb: int = Field(default=10, ge=1, le=100)
     retries: int = Field(default=3, ge=0, le=10)
-    user_agent: str = "DailySignal/0.1 (+https://github.com/daily-signal)"
+    user_agent: str = "Brief/0.1 (+https://github.com/brief)"
     respect_robots: bool = True
 
 

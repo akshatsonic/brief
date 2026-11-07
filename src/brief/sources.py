@@ -8,11 +8,11 @@ from urllib.parse import urljoin, urlsplit
 
 import feedparser
 
-from daily_signal.config import FeedArticleMode, SourceConfig
-from daily_signal.fetching import SafeFetcher
-from daily_signal.models import Article, DiscoveredItem
-from daily_signal.processing import deterministic_article_id, normalize_text, sanitize_html
-from daily_signal.security import canonicalize_url
+from brief.config import FeedArticleMode, SourceConfig
+from brief.fetching import SafeFetcher
+from brief.models import Article, DiscoveredItem
+from brief.processing import deterministic_article_id, normalize_text, sanitize_html
+from brief.security import canonicalize_url
 
 
 class SourceAdapter(Protocol):

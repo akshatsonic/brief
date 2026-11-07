@@ -1,0 +1,74 @@
+@page { size: 6in 9in; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: #f4efe6;
+  color: #211f1b;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16pt;
+  line-height: 1.45;
+}
+.cover, .contents, .story {
+  break-after: page;
+  min-height: 9in;
+  padding: 0.55in 0.5in 0.48in;
+  position: relative;
+}
+.cover { height: 9in; overflow: hidden; }
+.cover {
+  background: #1f2d2a;
+  color: #f7f2e9;
+  display: flex;
+  flex-direction: column;
+}
+.cover .eyebrow { margin-top: 0.15in; }
+.cover h1 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 58pt;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  margin: 1.25in 0 0;
+}
+.cover-rule { background: #d65a3a; height: 0.09in; margin: 0.28in 0 0.42in; width: 1.1in; }
+.cover-date { font-size: 25pt; margin: 0; }
+.cover-day { color: #d9cdbc; font-size: 19pt; margin: 0.08in 0 0; }
+.cover-count { margin-top: auto; }
+.eyebrow, .genre {
+  color: #b8422b;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  font-weight: 700;
+  margin: 0 0 0.16in;
+}
+.contents h2, .story h2 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.contents h2 { font-size: 36pt; margin: 0 0 0.35in; }
+.contents ol { list-style: none; margin: 0; padding: 0; }
+.contents li { border-top: 1px solid #bdb4a6; padding: 0.16in 0; }
+.contents li span { color: #746c61; display: block; font: 700 9pt Arial, sans-serif; margin-bottom: 0.04in; }
+.contents li strong { display: block; font: 700 14pt/1.18 Arial, sans-serif; }
+.story { background: #faf7f1; }
+.story figure { height: 2.9in; margin: -0.55in -0.5in 0.32in; overflow: hidden; }
+.story figure img { height: 100%; object-fit: cover; width: 100%; }
+.story h2 { font-size: 27pt; margin: 0 0 0.18in; }
+.story .summary { font-size: 16pt; line-height: 1.42; margin: 0; }
+.story--text h2 { font-size: 34pt; margin-top: 0.7in; }
+.points, .watchouts { border-top: 1px solid #bdb4a6; margin-top: 0.25in; padding-top: 0.16in; }
+.points h3, .watchouts h3 { font: 700 11pt Arial, sans-serif; margin: 0 0 0.08in; }
+.points ul, .watchouts ul { margin: 0; padding-left: 0.2in; }
+.points li, .watchouts li { font-size: 11pt; line-height: 1.3; margin: 0 0 0.05in; }
+.watchouts { background: #eee5d8; border: 0; padding: 0.14in 0.16in 0.1in; }
+.watchouts h3 { color: #9c3523; }
+.story footer {
+  display: flex;
+  font: 9pt Arial, Helvetica, sans-serif;
+  justify-content: space-between;
+  margin-top: 0.28in;
+}
+.story footer span { color: #746c61; }
+.story footer a { color: #9c3523; }

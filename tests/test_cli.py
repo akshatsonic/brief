@@ -33,3 +33,15 @@ def test_build_rejects_invalid_date(tmp_path) -> None:
     result = runner.invoke(app, ["build", "--config", str(config), "--date", "not-a-date"])
     assert result.exit_code == 1
     assert "--date must use YYYY-MM-DD format" in result.stdout
+
+
+def test_build_rejects_multiple_editorial_backends(tmp_path) -> None:
+    config = tmp_path / "brief.yaml"
+    initialized = runner.invoke(app, ["init", "--config", str(config)], input="\n\n\n")
+    assert initialized.exit_code == 0
+    result = runner.invoke(
+        app,
+        ["build", "--config", str(config), "--codex-cli", "--codex-api"],
+    )
+    assert result.exit_code == 1
+    assert "choose only one editorial backend" in result.stdout

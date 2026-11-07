@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="{{ edition.language }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ edition.display_title }}</title>
+  <style>{{ css|safe }}</style>
+</head>
+<body>
+  <section class="cover">
+    <p class="eyebrow">Daily magazine</p>
+    <h1>The Brief</h1>
+    <div class="cover-rule"></div>
+    <p class="cover-date">{{ edition.publication_date.strftime('%d %B %Y') }}</p>
+    <p class="cover-day">{{ edition.publication_date.strftime('%A') }}</p>
+    <p class="cover-count">{{ edition.articles|length }} essential stories</p>
+  </section>
+
+  <section class="contents">
+    <p class="eyebrow">Inside this edition</p>
+    <h2>Contents</h2>
+    <ol>{% for article in edition.articles %}
+      <li><span>{{ article.category or 'Other' }}</span><strong>{{ article.title }}</strong></li>
+    {% endfor %}</ol>
+  </section>
+
+  {% for article in edition.articles %}
+  <article class="story{% if not article_images[article.id] %} story--text{% endif %}">
+    {% if article_images[article.id] %}<figure><img src="{{ article_images[article.id] }}" alt=""></figure>{% endif %}
+    <header>
+      <p class="genre">{{ article.category or 'Other' }}</p>
+      <h2>{{ article.title }}</h2>
+      <p class="summary">{{ article.summary or article.content_text }}</p>
+    </header>
+    {% if article.important_points %}<section class="points">
+      <h3>Important points</h3>
+      <ul>{% for point in article.important_points %}<li>{{ point }}</li>{% endfor %}</ul>
+    </section>{% endif %}
+    {% if article.watchouts %}<aside class="watchouts">
+      <h3>Watchouts</h3>
+      <ul>{% for watchout in article.watchouts %}<li>{{ watchout }}</li>{% endfor %}</ul>
+    </aside>{% endif %}
+    <footer>
+      {% if article.author %}<span>{{ article.author }}</span>{% endif %}
+      <a href="{{ article.url }}">Read the original source</a>
+    </footer>
+  </article>
+  {% endfor %}
+</body>
+</html>

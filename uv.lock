@@ -55,6 +55,48 @@ wheels = [
 ]
 
 [[package]]
+name = "brief"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "apscheduler" },
+    { name = "feedparser" },
+    { name = "jinja2" },
+    { name = "nh3" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "scrapling", extra = ["fetchers"] },
+    { name = "typer" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "build" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "apscheduler", specifier = ">=3.11,<4" },
+    { name = "build", marker = "extra == 'dev'", specifier = ">=1.2,<2" },
+    { name = "feedparser", specifier = ">=6.0,<7" },
+    { name = "jinja2", specifier = ">=3.1,<4" },
+    { name = "nh3", specifier = ">=0.2,<1" },
+    { name = "pydantic", specifier = ">=2.10,<3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3,<9" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25,<1" },
+    { name = "pyyaml", specifier = ">=6.0,<7" },
+    { name = "rich", specifier = ">=13.9,<15" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9,<1" },
+    { name = "scrapling", extras = ["fetchers"], specifier = ">=0.5.1,<0.6" },
+    { name = "typer", specifier = ">=0.15,<1" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "browserforge"
 version = "1.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -242,62 +284,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/4c/b577dbd652069ad4860d3ab06ed9e72b4e71959d5fce2dcc920e1fc4e00a/curl_cffi-0.17.0-cp315-abi3.abi3t-win_amd64.whl", hash = "sha256:5ca006230676c7c2f2e5708d02e5852a09caee49d82f1f2a469d5d6537a11baa", size = 2161586, upload-time = "2026-10-26T04:13:34.042Z" },
     { url = "https://files.pythonhosted.org/packages/4a/c5/3bba2797e70d8e392caa4fe1543dc9398b859bec7f8e2f8b4dd6988cefd9/curl_cffi-0.17.0-cp315-abi3.abi3t-win_arm64.whl", hash = "sha256:32f9508a92adaa8c9c35fd4cda786c9e697643afc2eda8dc4c3d426a910b453a", size = 1898563, upload-time = "2026-10-26T04:13:35.354Z" },
     { url = "https://files.pythonhosted.org/packages/61/c2/4ab387b783b61b6fb43bcb0bbd9c126b33e0398241c7179dec343d428465/curl_cffi-0.17.0-cp315-cp315-android_24_arm64_v8a.whl", hash = "sha256:918a493717da703bc10507b811e347f4ad94132e30c6709fc1e85daf79979565", size = 8659769, upload-time = "2026-10-26T04:13:37.043Z" },
-]
-
-[[package]]
-name = "brief"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "apscheduler" },
-    { name = "ebooklib" },
-    { name = "feedparser" },
-    { name = "jinja2" },
-    { name = "nh3" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "scrapling", extra = ["fetchers"] },
-    { name = "typer" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "build" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "apscheduler", specifier = ">=3.11,<4" },
-    { name = "build", marker = "extra == 'dev'", specifier = ">=1.2,<2" },
-    { name = "ebooklib", specifier = ">=0.18,<1" },
-    { name = "feedparser", specifier = ">=6.0,<7" },
-    { name = "jinja2", specifier = ">=3.1,<4" },
-    { name = "nh3", specifier = ">=0.2,<1" },
-    { name = "pydantic", specifier = ">=2.10,<3" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3,<9" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25,<1" },
-    { name = "pyyaml", specifier = ">=6.0,<7" },
-    { name = "rich", specifier = ">=13.9,<15" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9,<1" },
-    { name = "scrapling", extras = ["fetchers"], specifier = ">=0.5.1,<0.6" },
-    { name = "typer", specifier = ">=0.15,<1" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "ebooklib"
-version = "0.21"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lxml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/fc/d8/a7ec6e06014057918bd58d1495af2e9c4e21cf14c93d10c625e905a8285d/ebooklib-0.21.tar.gz", hash = "sha256:fa815d544f722321c9fd31d8957473b2617027d3091431aa690d6dd93f785222", size = 148682, upload-time = "2026-11-01T14:08:59.06Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/72/5dde31a7b988f13ea158936e10bf82e7f6c1763201b325774ea93a0cf8ff/ebooklib-0.21-py3-none-any.whl", hash = "sha256:8cb417bed66567210661e6ef203f6310f394ad4a282f385a07320cbc09906c30", size = 52543, upload-time = "2026-11-01T14:08:57.524Z" },
 ]
 
 [[package]]

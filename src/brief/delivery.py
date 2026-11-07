@@ -55,11 +55,11 @@ class KindleSmtpDeliveryProvider:
         message["Subject"] = edition.display_title
         message["From"] = settings["sender"]
         message["To"] = recipient
-        message.set_content("Brief EPUB delivery. SMTP acceptance does not guarantee Kindle import.")
+        message.set_content("Brief PDF delivery. SMTP acceptance does not guarantee Kindle import.")
         message.add_attachment(
             artifact.read_bytes(),
             maintype="application",
-            subtype="epub+zip",
+            subtype="pdf",
             filename=artifact.name,
         )
         try:

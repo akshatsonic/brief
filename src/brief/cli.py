@@ -25,7 +25,7 @@ from brief.sources import adapter_for
 
 app = typer.Typer(
     name="brief",
-    help="Turn your sources into a personal daily EPUB newspaper.",
+    help="Turn your sources into an LLM-edited daily PDF magazine.",
     no_args_is_help=True,
 )
 source_app = typer.Typer(help="Add, inspect, and test newspaper sources.", no_args_is_help=True)
@@ -65,7 +65,13 @@ def initialize(
         },
         "sources": [],
         "editorial": {"deduplicate": True, "max_age_hours": 36, "categories": []},
-        "output": {"format": "epub", "theme": "magazine", "directory": "./output"},
+        "output": {"format": "pdf", "theme": "magazine", "directory": "./output"},
+        "llm": {
+            "enabled": True,
+            "backend": "codex-api",
+            "model": "gpt-6-astra",
+            "api_key_env": "OPENAI_API_KEY",
+        },
         "delivery": {"provider": "local"},
     }
     try:
@@ -181,10 +187,19 @@ def source_test(
 def build(
     config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
     publication_date: str | None = typer.Option(None, "--date", help="Edition date (YYYY-MM-DD)."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without writing an EPUB."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Discover and filter without calling OpenAI or writing files."
+    ),
+    codex_cli: bool = typer.Option(False, "--codex-cli", help="Run the editorial pass through local `codex exec`."),
+    codex_api: bool = typer.Option(
+        False, "--codex-api", help="Run the editorial pass through the OpenAI Responses API."
+    ),
 ) -> None:
-    """Build an EPUB edition without delivering it."""
+    """Build an LLM-edited PDF magazine without delivering it."""
     loaded = _load(config)
+    if codex_cli and codex_api:
+        _fail("choose only one editorial backend: --codex-cli or --codex-api")
+    editorial_backend = "codex-cli" if codex_cli else "codex-api" if codex_api else loaded.llm.backend
     target_date = None
     if publication_date:
         try:
@@ -193,18 +208,24 @@ def build(
             _fail("--date must use YYYY-MM-DD format")
     try:
         with console.status("Discovering and curating articles…"):
-            result = asyncio.run(NewspaperService(loaded).build(target_date, dry_run=dry_run))
+            result = asyncio.run(
+                NewspaperService(loaded, editorial_backend=editorial_backend).build(target_date, dry_run=dry_run)
+            )
     except BuildError as error:
         _fail(str(error))
     except Exception as error:
         _fail(f"build failed: {type(error).__name__}: {error}")
     console.print(f"Discovered [bold]{result.discovered_count}[/bold]; selected [bold]{result.selected_count}[/bold].")
+    if not dry_run:
+        console.print(f"Editorial backend: [bold]{editorial_backend}[/bold]")
     if result.artifact:
         console.print(f"[green]Built[/green] {result.artifact}")
         if result.normalized_articles:
-            console.print(f"[green]Articles[/green] {result.normalized_articles}")
+            console.print(f"[green]Scraped articles[/green] {result.normalized_articles}")
+        if result.final_articles:
+            console.print(f"[green]Final articles[/green] {result.final_articles}")
     elif dry_run:
-        console.print("[yellow]Dry run:[/yellow] no database or EPUB was written.")
+        console.print("[yellow]Dry run:[/yellow] OpenAI was not called and no database or files were written.")
     for diagnostic in result.diagnostics:
         console.print(f"[yellow]Warning:[/yellow] {diagnostic}")
 
@@ -298,13 +319,34 @@ def doctor(
         )
     if any(source.fetcher is FetcherType.BROWSER for source in loaded.sources):
         checks.append(("Browser", True, "configured; run `scrapling install` before first use"))
-    checks.append(
-        (
-            "EPUBCheck",
-            True,
-            shutil.which("epubcheck") or "not installed (optional)",
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as playwright:
+            chromium_path = Path(os.getenv("BRIEF_CHROMIUM_EXECUTABLE") or playwright.chromium.executable_path)
+        checks.append(
+            (
+                "PDF browser",
+                chromium_path.is_file(),
+                str(chromium_path) if chromium_path.is_file() else "missing; run `uv run scrapling install`",
+            )
         )
-    )
+    except Exception as error:
+        checks.append(("PDF browser", False, str(error)))
+    if loaded.llm.enabled:
+        if loaded.llm.backend == "codex-cli":
+            codex_path = shutil.which(loaded.llm.codex_command)
+            checks.append(("Codex CLI", bool(codex_path), codex_path or "command not found"))
+        else:
+            checks.append(
+                (
+                    "OpenAI",
+                    bool(os.getenv(loaded.llm.api_key_env)),
+                    f"{loaded.llm.api_key_env} is configured"
+                    if os.getenv(loaded.llm.api_key_env)
+                    else f"missing {loaded.llm.api_key_env}",
+                )
+            )
     if loaded.delivery.provider == "kindle":
         required = ["BRIEF_SMTP_HOST", "BRIEF_SMTP_USERNAME", "BRIEF_SMTP_PASSWORD"]
         missing = [name for name in required if not os.getenv(name)]

@@ -1,16 +1,28 @@
+from __future__ import annotations
+
+import asyncio
+import os
+import sqlite3
+from datetime import date
 from pathlib import Path
 
+import feedparser
 import typer
+import yaml
+from pydantic import ValidationError
 from rich.console import Console
+from rich.table import Table
 
 from daily_signal import __version__
-from daily_signal.config import ConfigurationError, load_config
+from daily_signal.config import AppConfig, ConfigurationError, FetcherType, SourceConfig, load_config
+from daily_signal.fetching import SafeFetcher
+from daily_signal.persistence import Database
+from daily_signal.service import BuildError, NewspaperService
+from daily_signal.sources import adapter_for
 
-app = typer.Typer(
-    name="daily-signal",
-    help="Turn your sources into a personal daily EPUB newspaper.",
-    no_args_is_help=True,
-)
+app = typer.Typer(name="daily-signal", help="Turn your sources into a personal daily EPUB newspaper.", no_args_is_help=True)
+source_app = typer.Typer(help="Add, inspect, and test newspaper sources.", no_args_is_help=True)
+app.add_typer(source_app, name="source")
 console = Console()
 
 
@@ -21,27 +33,214 @@ def version_callback(value: bool) -> None:
 
 
 @app.callback()
-def main(
-    version: bool = typer.Option(
-        False, "--version", callback=version_callback, is_eager=True, help="Show the version."
-    ),
-) -> None:
+def main(version: bool = typer.Option(False, "--version", callback=version_callback, is_eager=True, help="Show the version.")) -> None:
     """Build and deliver a curated newspaper from feeds and websites."""
 
 
-@app.command()
-def doctor(
+@app.command("init")
+def initialize(
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    force: bool = typer.Option(False, "--force", help="Replace an existing configuration."),
+) -> None:
+    """Interactively create configuration and state directories."""
+    if config.exists() and not force:
+        _fail(f"configuration already exists: {config}; pass --force to replace it")
+    raw = {
+        "publication": {
+            "name": typer.prompt("Newspaper name", default="The Morning Brief"),
+            "timezone": typer.prompt("Timezone", default="UTC"),
+            "schedule": typer.prompt("Daily cron schedule", default="0 7 * * *"),
+            "max_articles": 20,
+        },
+        "sources": [],
+        "editorial": {"deduplicate": True, "max_age_hours": 36, "categories": []},
+        "output": {"format": "epub", "theme": "classic", "directory": "./output"},
+        "delivery": {"provider": "local"},
+    }
+    try:
+        AppConfig.model_validate(raw)
+    except ValidationError as error:
+        _fail(f"invalid setup: {error}")
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+    loaded = load_config(config)
+    loaded.output.directory.mkdir(parents=True, exist_ok=True)
+    loaded.database.path.parent.mkdir(parents=True, exist_ok=True)
+    console.print(f"[green]Created[/green] {config}")
+    console.print("Add a source with: [bold]daily-signal source add <url>[/bold]")
+
+
+@source_app.command("add")
+def source_add(
+    url: str = typer.Argument(..., help="RSS, Atom, or website listing URL."),
     config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
 ) -> None:
-    """Validate configuration and installation prerequisites."""
+    """Detect and add an RSS feed or website source."""
+    loaded = _load(config)
+    source_id = typer.prompt("Source ID", default=_source_id(url))
+    name = typer.prompt("Source name", default=source_id.replace("-", " ").title())
+
+    async def detect() -> bool:
+        temporary = SourceConfig(id=source_id, name=name, type="rss", url=url, request_delay_seconds=0)
+        response = await SafeFetcher(loaded.network).fetch(url, temporary)
+        return bool(feedparser.parse(response.body).entries)
+
     try:
-        loaded = load_config(config)
+        is_feed = asyncio.run(detect())
+    except Exception as error:
+        _fail(f"could not inspect source: {error}")
+    source: dict = {
+        "id": source_id,
+        "name": name,
+        "type": "rss" if is_feed else "website",
+        "url": url,
+        "category": typer.prompt("Category", default="uncategorized"),
+    }
+    if not is_feed:
+        source["discovery"] = {"article_links": typer.prompt("Article link CSS selector", default="article h2 a")}
+        if typer.confirm("Does this site require JavaScript rendering?", default=False):
+            source["fetcher"] = "browser"
+        content = typer.prompt("Article content CSS selector (blank for automatic)", default="")
+        title = typer.prompt("Article title CSS selector", default="h1")
+        source["extraction"] = {key: value for key, value in {"title": title, "content": content}.items() if value}
+    raw = yaml.safe_load(config.read_text(encoding="utf-8"))
+    raw.setdefault("sources", []).append(source)
+    try:
+        AppConfig.model_validate(raw)
+    except ValidationError as error:
+        _fail(f"source is invalid: {error}")
+    config.write_text(yaml.safe_dump(raw, sort_keys=False), encoding="utf-8")
+    console.print(f"[green]Added[/green] {source_id} ({source['type']})")
+
+
+@source_app.command("list")
+def source_list(config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c")) -> None:
+    """List configured sources."""
+    loaded = _load(config)
+    table = Table("ID", "Name", "Type", "Fetcher", "Category", "Enabled")
+    for source in loaded.sources:
+        table.add_row(source.id, source.name, source.type.value, source.fetcher.value, source.category or "—", "yes" if source.enabled else "no")
+    console.print(table)
+
+
+@source_app.command("test")
+def source_test(
+    source_id: str = typer.Argument(..., help="Configured source identifier."),
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    limit: int = typer.Option(3, min=1, max=10, help="Number of sample articles."),
+) -> None:
+    """Discover and extract sample articles with diagnostics."""
+    loaded = _load(config)
+    source = next((candidate for candidate in loaded.sources if candidate.id == source_id), None)
+    if source is None:
+        _fail(f"unknown source: {source_id}")
+
+    async def run() -> None:
+        adapter = adapter_for(source, SafeFetcher(loaded.network))
+        items = await adapter.discover()
+        console.print(f"Discovered [bold]{len(items)}[/bold] candidate articles")
+        table = Table("Title", "Words", "Published", "URL")
+        for item in items[:limit]:
+            try:
+                article = await adapter.extract(item)
+                table.add_row(article.title, str(len(article.content_text.split())), article.published_at.isoformat() if article.published_at else "unknown", article.url)
+            except Exception as error:
+                table.add_row(item.title or "unknown", "error", type(error).__name__, str(error))
+        console.print(table)
+
+    try:
+        asyncio.run(run())
+    except Exception as error:
+        _fail(f"source test failed: {type(error).__name__}: {error}")
+
+
+@app.command()
+def build(
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    publication_date: date | None = typer.Option(None, "--date", help="Edition date (YYYY-MM-DD)."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without writing an EPUB."),
+) -> None:
+    """Build an EPUB edition without delivering it."""
+    loaded = _load(config)
+    try:
+        with console.status("Discovering and curating articles…"):
+            result = asyncio.run(NewspaperService(loaded).build(publication_date, dry_run=dry_run))
+    except BuildError as error:
+        _fail(str(error))
+    except Exception as error:
+        _fail(f"build failed: {type(error).__name__}: {error}")
+    console.print(f"Discovered [bold]{result.discovered_count}[/bold]; selected [bold]{result.selected_count}[/bold].")
+    if result.artifact:
+        console.print(f"[green]Built[/green] {result.artifact}")
+    elif dry_run:
+        console.print("[yellow]Dry run:[/yellow] no database or EPUB was written.")
+    for diagnostic in result.diagnostics:
+        console.print(f"[yellow]Warning:[/yellow] {diagnostic}")
+
+
+@app.command()
+def runs(
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    limit: int = typer.Option(20, min=1, max=200),
+) -> None:
+    """Show recent publishing and build executions."""
+    loaded = _load(config)
+    database = Database(loaded.database.path)
+    database.migrate()
+    table = Table("Started", "Kind", "Status", "Error")
+    for row in database.recent_runs(limit):
+        table.add_row(row["started_at"], row["kind"], row["status"], row["error_summary"] or "—")
+    console.print(table)
+
+
+@app.command()
+def doctor(config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c")) -> None:
+    """Validate configuration, database, output, browser, and delivery settings."""
+    loaded = _load(config)
+    checks: list[tuple[str, bool, str]] = [("Configuration", True, loaded.publication.name)]
+    try:
+        Database(loaded.database.path).migrate()
+        with sqlite3.connect(loaded.database.path) as connection:
+            connection.execute("SELECT 1")
+        checks.append(("Database", True, str(loaded.database.path)))
+    except Exception as error:
+        checks.append(("Database", False, str(error)))
+    try:
+        loaded.output.directory.mkdir(parents=True, exist_ok=True)
+        checks.append(("Output", os.access(loaded.output.directory, os.W_OK), str(loaded.output.directory)))
+    except OSError as error:
+        checks.append(("Output", False, str(error)))
+    if any(source.fetcher is FetcherType.BROWSER for source in loaded.sources):
+        checks.append(("Browser", True, "configured; run `scrapling install` before first use"))
+    if loaded.delivery.provider == "kindle":
+        required = ["DAILY_SIGNAL_SMTP_HOST", "DAILY_SIGNAL_SMTP_USERNAME", "DAILY_SIGNAL_SMTP_PASSWORD"]
+        missing = [name for name in required if not os.getenv(name)]
+        checks.append(("SMTP", not missing, "missing: " + ", ".join(missing) if missing else "configured"))
+    table = Table("Check", "Status", "Details")
+    for name, ok, details in checks:
+        table.add_row(name, "[green]OK[/green]" if ok else "[red]FAIL[/red]", details)
+    console.print(table)
+    if not all(ok for _, ok, _ in checks):
+        raise typer.Exit(1)
+
+
+def _load(path: Path) -> AppConfig:
+    try:
+        return load_config(path)
     except ConfigurationError as error:
-        console.print(f"[red]Configuration error:[/red] {error}")
-        raise typer.Exit(1) from error
-    console.print(f"[green]Configuration valid:[/green] {loaded.publication.name}")
+        _fail(f"configuration error: {error}")
+
+
+def _source_id(url: str) -> str:
+    host = url.split("//", 1)[-1].split("/", 1)[0].split(":", 1)[0]
+    value = "-".join(part for part in host.split(".") if part not in {"www", "com", "org", "net"})
+    return (value or "source")[:64]
+
+
+def _fail(message: str) -> None:
+    console.print(f"[red]Error:[/red] {message}")
+    raise typer.Exit(1)
 
 
 if __name__ == "__main__":
     app()
-

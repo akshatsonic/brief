@@ -1,0 +1,17 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+body:
+  - type: textarea
+    attributes: {label: What happened?}
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: Reproduction steps}
+    validations: {required: true}
+  - type: input
+    attributes: {label: Daily Signal and Python versions}
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: Sanitized configuration and logs
+      description: Never include credentials or private article content.
+

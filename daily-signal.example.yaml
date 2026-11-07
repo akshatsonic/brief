@@ -1,0 +1,46 @@
+publication:
+  name: The Morning Brief
+  timezone: Asia/Kolkata
+  schedule: "0 7 * * *"
+  max_articles: 20
+  language: en
+
+sources:
+  - id: hackernews
+    name: Hacker News
+    type: rss
+    url: https://news.ycombinator.com/rss
+    category: technology
+    fetch_article: auto
+  - id: example-blog
+    name: Example Blog
+    type: website
+    url: https://example.com/blog
+    category: engineering
+    fetcher: http
+    discovery:
+      article_links: "article h2 a"
+    extraction:
+      title: h1
+      content: article
+      date: time
+
+editorial:
+  deduplicate: true
+  max_age_hours: 36
+  min_content_words: 40
+  categories: [technology, engineering]
+  category_rules: []
+output: {format: epub, theme: classic, directory: ./output}
+database: {path: ./.daily-signal/daily-signal.db}
+network:
+  timeout_seconds: 30
+  max_response_mb: 10
+  retries: 3
+  respect_robots: true
+delivery: {provider: local, max_attachment_mb: 25}
+scheduler:
+  misfire_grace_seconds: 3600
+  retry_delays_seconds: [60, 300, 900]
+  lease_seconds: 7200
+

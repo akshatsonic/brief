@@ -1,0 +1,14 @@
+services:
+  daily-signal:
+    build: .
+    restart: unless-stopped
+    command: ["serve", "--config", "/config/daily-signal.yaml"]
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./daily-signal.yaml:/config/daily-signal.yaml:ro
+      - ./data:/data
+      - ./output:/output
+    stop_grace_period: 30s
+

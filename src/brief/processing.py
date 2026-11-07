@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from html import unescape
 from typing import Protocol
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import nh3
 
@@ -79,6 +79,18 @@ def sanitize_html(content: str | None, base_url: str) -> str | None:
     )
 
 
+def normalize_image_url(value: object, base_url: str) -> str | None:
+    if not value:
+        return None
+    absolute = urljoin(base_url, str(value).strip())
+    parts = urlsplit(absolute)
+    if parts.scheme.lower() not in {"http", "https"} or not parts.hostname:
+        return None
+    if parts.username or parts.password:
+        return None
+    return urlunsplit((parts.scheme.lower(), parts.netloc, parts.path, parts.query, ""))
+
+
 @dataclass(frozen=True)
 class ProcessingContext:
     config: AppConfig
@@ -114,6 +126,7 @@ class EditorialPipeline:
                 "content_html": html,
                 "content_text": normalize_text(article.content_text),
                 "summary": normalize_text(article.summary) if article.summary else None,
+                "image_url": normalize_image_url(article.image_url, url),
             }
         )
 

@@ -44,6 +44,7 @@ async def test_rss_discovery_and_embedded_extraction() -> None:
     assert article.title == "A useful story"
     assert article.published_at is not None
     assert "complete fixture article" in article.content_text
+    assert article.image_url == "https://example.test/images/story.jpg"
 
 
 async def test_website_discovery_and_extraction() -> None:
@@ -71,6 +72,7 @@ async def test_website_discovery_and_extraction() -> None:
     assert article.title == "Fixture Story"
     assert article.author == "Reporter"
     assert "clean local content" in article.content_text
+    assert article.image_url == "https://example.test/images/fixture-story.jpg"
 
 
 async def test_malformed_html_is_extracted_without_scripts() -> None:
@@ -89,3 +91,4 @@ async def test_malformed_html_is_extracted_without_scripts() -> None:
     article = await adapter.extract(DiscoveredItem(source_id="broken", url=story))
     assert article.title == "Malformed story"
     assert "window.bad" not in (article.content_html or "")
+    assert article.image_url is None

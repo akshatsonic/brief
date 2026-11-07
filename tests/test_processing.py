@@ -8,6 +8,7 @@ from brief.processing import (
     EditorialPipeline,
     ProcessingContext,
     content_fingerprint,
+    normalize_image_url,
     normalize_text,
     sanitize_html,
 )
@@ -36,6 +37,14 @@ def test_sanitizes_unsafe_markup() -> None:
 def test_normalization_and_fingerprint_are_stable() -> None:
     assert normalize_text("  Hello\t world \n\n Again ") == "Hello world\nAgain"
     assert content_fingerprint("Hello   world") == content_fingerprint("Hello world")
+
+
+def test_image_url_is_absolute_or_none() -> None:
+    assert normalize_image_url("/images/story.jpg", "https://example.test/article") == (
+        "https://example.test/images/story.jpg"
+    )
+    assert normalize_image_url("javascript:alert(1)", "https://example.test/article") is None
+    assert normalize_image_url(None, "https://example.test/article") is None
 
 
 def test_pipeline_deduplicates_and_orders() -> None:

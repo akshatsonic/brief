@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS articles (
     summary TEXT,
     category TEXT,
     language TEXT,
+    image_url TEXT,
     UNIQUE(source_id, canonical_url)
 );
 CREATE INDEX IF NOT EXISTS articles_url_idx ON articles(canonical_url);
@@ -122,6 +123,13 @@ class Database:
                 "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(1, ?)",
                 (_now(),),
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(articles)").fetchall()}
+            if "image_url" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN image_url TEXT")
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(2, ?)",
+                (_now(),),
+            )
 
     def sync_sources(self, sources: list[SourceConfig]) -> None:
         with self.connect() as connection:
@@ -157,18 +165,20 @@ class Database:
             article.summary,
             article.category,
             article.language,
+            article.image_url,
         )
         with self.connect() as connection:
             connection.execute(
                 """INSERT INTO articles(
                 id,source_id,title,url,canonical_url,author,published_at,fetched_at,
-                content_html,content_text,content_fingerprint,summary,category,language
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                content_html,content_text,content_fingerprint,summary,category,language,image_url
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
                 title=excluded.title,url=excluded.url,canonical_url=excluded.canonical_url,
                 author=excluded.author,published_at=excluded.published_at,
                 fetched_at=excluded.fetched_at,content_html=excluded.content_html,
                 content_text=excluded.content_text,content_fingerprint=excluded.content_fingerprint,
-                summary=excluded.summary,category=excluded.category,language=excluded.language""",
+                summary=excluded.summary,category=excluded.category,language=excluded.language,
+                image_url=excluded.image_url""",
                 values,
             )
 
@@ -235,6 +245,7 @@ class Database:
                 content_html=item["content_html"],
                 content_text=item["content_text"],
                 summary=item["summary"],
+                image_url=item["image_url"],
                 category=item["category"],
                 language=item["language"],
             )

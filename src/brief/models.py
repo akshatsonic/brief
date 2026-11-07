@@ -23,6 +23,7 @@ class Article(Model):
     content_html: str | None = None
     content_text: str
     summary: str | None = None
+    image_url: str | None = None
     category: str | None = None
     language: str | None = None
 
@@ -42,6 +43,7 @@ class DiscoveredItem(Model):
     published_at: datetime | None = None
     content_html: str | None = None
     summary: str | None = None
+    image_url: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

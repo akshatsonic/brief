@@ -11,7 +11,7 @@ import feedparser
 from brief.config import FeedArticleMode, SourceConfig
 from brief.fetching import SafeFetcher
 from brief.models import Article, DiscoveredItem
-from brief.processing import deterministic_article_id, normalize_text, sanitize_html
+from brief.processing import deterministic_article_id, normalize_image_url, normalize_text, sanitize_html
 from brief.security import canonicalize_url
 
 
@@ -46,6 +46,7 @@ class RssSourceAdapter:
                     published_at=_entry_date(entry),
                     content_html=content,
                     summary=entry.get("summary"),
+                    image_url=_entry_image(entry, str(response.url)),
                 )
             )
         return items
@@ -59,6 +60,7 @@ class RssSourceAdapter:
         title = item.title
         author = item.author
         published = item.published_at
+        image_url = item.image_url
         if should_fetch and self.source.fetch_article is not FeedArticleMode.NEVER:
             response = await self.fetcher.fetch(item.url, self.source)
             selected = _select_article_content(response, None)
@@ -68,6 +70,7 @@ class RssSourceAdapter:
             title = title or _select_text(response, "h1") or _meta(response, "og:title")
             author = author or _meta(response, "author")
             published = published or _extract_date(response, None)
+            image_url = image_url or _page_image(response)
         canonical = canonicalize_url(item.url)
         return Article(
             id=deterministic_article_id(self.source.id, canonical),
@@ -80,6 +83,7 @@ class RssSourceAdapter:
             content_html=sanitize_html(html, canonical),
             content_text=normalize_text(text or _html_text(item.summary or "")),
             summary=_html_text(item.summary or "") or None,
+            image_url=image_url,
             category=self.source.category,
         )
 
@@ -146,6 +150,7 @@ class WebsiteSourceAdapter:
         author = _select_text(response, author_selector) if author_selector else _meta(response, "author")
         published = _extract_date(response, date_selector)
         canonical = _canonical_from_page(response) or canonicalize_url(str(response.url))
+        image_url = _page_image(response)
         html = content.html_content
         text = str(content.get_all_text(separator="\n", strip=True))
         return Article(
@@ -158,6 +163,7 @@ class WebsiteSourceAdapter:
             fetched_at=datetime.now(UTC),
             content_html=sanitize_html(html, canonical),
             content_text=normalize_text(text),
+            image_url=image_url,
             category=self.source.category,
             language=_page_language(response),
         )
@@ -182,6 +188,21 @@ def _entry_date(entry) -> datetime | None:
         return datetime(*parsed[:6], tzinfo=UTC)
     raw = entry.get("published") or entry.get("updated")
     return _parse_date(raw)
+
+
+def _entry_image(entry, base_url: str) -> str | None:
+    candidates = []
+    for key in ("media_content", "media_thumbnail", "enclosures"):
+        for item in entry.get(key) or []:
+            if key != "enclosures" or str(item.get("type", "")).startswith("image/"):
+                candidates.append(item.get("url") or item.get("href"))
+    image = entry.get("image") or {}
+    if isinstance(image, dict):
+        candidates.extend([image.get("url"), image.get("href")])
+    return next(
+        (normalized for value in candidates if (normalized := normalize_image_url(value, base_url))),
+        None,
+    )
 
 
 def _select_article_content(response, selector: str | None):
@@ -253,6 +274,19 @@ def _parse_date(value: str | None) -> datetime | None:
 def _canonical_from_page(response) -> str | None:
     value = response.css('link[rel="canonical"]::attr(href)').get()
     return canonicalize_url(urljoin(str(response.url), str(value))) if value else None
+
+
+def _page_image(response) -> str | None:
+    candidates = [
+        _meta(response, "og:image"),
+        _meta(response, "twitter:image"),
+        _meta(response, "twitter:image:src"),
+        response.css('link[rel="image_src"]::attr(href)').get(),
+    ]
+    return next(
+        (normalized for value in candidates if (normalized := normalize_image_url(value, str(response.url)))),
+        None,
+    )
 
 
 def _page_language(response) -> str | None:

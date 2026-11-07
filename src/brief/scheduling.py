@@ -39,11 +39,7 @@ def serve(config: AppConfig) -> None:
     trigger = CronTrigger.from_crontab(config.publication.schedule, timezone=zone)
 
     def job() -> None:
-        asyncio.run(
-            publish_with_retries(
-                NewspaperService(config), config.scheduler.retry_delays_seconds
-            )
-        )
+        asyncio.run(publish_with_retries(NewspaperService(config), config.scheduler.retry_delays_seconds))
 
     scheduler.add_job(
         job,
@@ -58,4 +54,3 @@ def serve(config: AppConfig) -> None:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown(wait=True)
-

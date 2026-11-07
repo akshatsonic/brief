@@ -55,9 +55,7 @@ class KindleSmtpDeliveryProvider:
         message["Subject"] = f"{edition.publication_name} — {edition.publication_date}"
         message["From"] = settings["sender"]
         message["To"] = recipient
-        message.set_content(
-            "Brief EPUB delivery. SMTP acceptance does not guarantee Kindle import."
-        )
+        message.set_content("Brief EPUB delivery. SMTP acceptance does not guarantee Kindle import.")
         message.add_attachment(
             artifact.read_bytes(),
             maintype="application",
@@ -115,4 +113,3 @@ def _smtp_settings() -> dict[str, str | int]:
         "security": security,
         "port": port,
     }
-

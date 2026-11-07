@@ -180,14 +180,20 @@ def source_test(
 @app.command()
 def build(
     config: Path = typer.Option(Path("brief.yaml"), "--config", "-c"),
-    publication_date: date | None = typer.Option(None, "--date", help="Edition date (YYYY-MM-DD)."),
+    publication_date: str | None = typer.Option(None, "--date", help="Edition date (YYYY-MM-DD)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without writing an EPUB."),
 ) -> None:
     """Build an EPUB edition without delivering it."""
     loaded = _load(config)
+    target_date = None
+    if publication_date:
+        try:
+            target_date = date.fromisoformat(publication_date)
+        except ValueError:
+            _fail("--date must use YYYY-MM-DD format")
     try:
         with console.status("Discovering and curating articles…"):
-            result = asyncio.run(NewspaperService(loaded).build(publication_date, dry_run=dry_run))
+            result = asyncio.run(NewspaperService(loaded).build(target_date, dry_run=dry_run))
     except BuildError as error:
         _fail(str(error))
     except Exception as error:
@@ -293,6 +299,7 @@ def doctor(
         missing = [name for name in required if not os.getenv(name)]
         checks.append(("SMTP", not missing, "missing: " + ", ".join(missing) if missing else "configured"))
     if not skip_network:
+
         async def check_sources() -> list[tuple[str, bool, str]]:
             fetcher = SafeFetcher(loaded.network)
             results = []

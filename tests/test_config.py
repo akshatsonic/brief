@@ -17,9 +17,7 @@ def test_loads_defaults_and_resolves_paths(tmp_path: Path) -> None:
         tmp_path,
         {
             "publication": {"name": "Morning", "timezone": "Asia/Kolkata"},
-            "sources": [
-                {"id": "news", "name": "News", "type": "rss", "url": "https://x.test/rss"}
-            ],
+            "sources": [{"id": "news", "name": "News", "type": "rss", "url": "https://x.test/rss"}],
         },
     )
     config = load_config(path)
@@ -54,4 +52,3 @@ def test_rejects_secrets(tmp_path: Path) -> None:
     )
     with pytest.raises(ConfigurationError, match="secrets are not allowed"):
         load_config(path)
-

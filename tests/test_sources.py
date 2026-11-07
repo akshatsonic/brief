@@ -6,7 +6,6 @@ from brief.config import SourceConfig
 from brief.models import DiscoveredItem
 from brief.sources import RssSourceAdapter, WebsiteSourceAdapter
 
-
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -90,4 +89,3 @@ async def test_malformed_html_is_extracted_without_scripts() -> None:
     article = await adapter.extract(DiscoveredItem(source_id="broken", url=story))
     assert article.title == "Malformed story"
     assert "window.bad" not in (article.content_html or "")
-

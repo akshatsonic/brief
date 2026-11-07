@@ -40,9 +40,7 @@ class NewspaperService:
         cutoff = _cutoff(target_date, zone)
         if not dry_run:
             self.database.migrate()
-            existing = self.database.load_edition(
-                self.config.publication.name, target_date
-            )
+            existing = self.database.load_edition(self.config.publication.name, target_date)
             if existing is not None:
                 if existing.artifact_path and existing.artifact_path.is_file():
                     return BuildResult(
@@ -53,9 +51,7 @@ class NewspaperService:
                         diagnostics=["reused persisted edition"],
                     )
                 if existing.articles:
-                    artifact = self.renderer.render(
-                        existing, self.config.output.directory
-                    )
+                    artifact = self.renderer.render(existing, self.config.output.directory)
                     existing = existing.model_copy(
                         update={
                             "artifact_path": artifact,
@@ -88,9 +84,7 @@ class NewspaperService:
                         articles.append(outcome)
             except Exception as error:
                 diagnostics.append(f"{source.id}: {type(error).__name__}: {error}")
-        selected = EditorialPipeline().process(
-            articles, ProcessingContext(config=self.config, cutoff=cutoff)
-        )
+        selected = EditorialPipeline().process(articles, ProcessingContext(config=self.config, cutoff=cutoff))
         if dry_run:
             return BuildResult(
                 edition=None,
@@ -102,9 +96,7 @@ class NewspaperService:
             raise BuildError("no qualifying articles were found; " + "; ".join(diagnostics[:3]))
         self.database.migrate()
         self.database.sync_sources(self.config.sources)
-        edition_id = hashlib.sha256(
-            f"{self.config.publication.name}\n{target_date.isoformat()}".encode()
-        ).hexdigest()
+        edition_id = hashlib.sha256(f"{self.config.publication.name}\n{target_date.isoformat()}".encode()).hexdigest()
         edition = Edition(
             id=edition_id,
             publication_name=self.config.publication.name,
@@ -151,9 +143,7 @@ class NewspaperService:
             return await self.build(publication_date, dry_run=True), None
         self.database.migrate()
         owner = uuid.uuid4().hex
-        if not self.database.acquire_lease(
-            "publish", owner, self.config.scheduler.lease_seconds
-        ):
+        if not self.database.acquire_lease("publish", owner, self.config.scheduler.lease_seconds):
             raise BuildError("another publication run is already active")
         run_id = self.database.begin_run("publish")
         try:
@@ -197,4 +187,3 @@ async def _extract_items(adapter, items):
             return await adapter.extract(item)
 
     return await asyncio.gather(*(extract(item) for item in items), return_exceptions=True)
-

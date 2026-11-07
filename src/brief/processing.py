@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Iterable, Protocol
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from html import unescape
+from typing import Protocol
 from urllib.parse import urljoin
 
 import nh3
@@ -13,7 +14,6 @@ import nh3
 from brief.config import AppConfig, CategoryRule
 from brief.models import Article
 from brief.security import canonicalize_url
-
 
 ALLOWED_TAGS = {
     "a",
@@ -117,9 +117,7 @@ class EditorialPipeline:
             }
         )
 
-    def _quality_and_age(
-        self, articles: Iterable[Article], context: ProcessingContext
-    ) -> list[Article]:
+    def _quality_and_age(self, articles: Iterable[Article], context: ProcessingContext) -> list[Article]:
         oldest = context.cutoff - timedelta(hours=context.config.editorial.max_age_hours)
         minimum = context.config.editorial.min_content_words
         return [
@@ -181,4 +179,3 @@ def _rule_matches(rule: CategoryRule, article: Article) -> bool:
         title = article.title.casefold()
         selectors.append(any(keyword.casefold() in title for keyword in rule.title_keywords))
     return bool(selectors) and any(selectors)
-

@@ -49,6 +49,7 @@ class SafeFetcher:
 
     async def _request(self, url: str, fetcher: FetcherType):
         if fetcher is FetcherType.BROWSER:
+
             async def guard_request(route) -> None:
                 target = route.request.url
                 if urlsplit(target).scheme in {"http", "https"}:
@@ -125,4 +126,3 @@ class SafeFetcher:
 def _origin(url: str) -> str:
     parts = urlsplit(url)
     return f"{parts.scheme}://{parts.netloc}"
-

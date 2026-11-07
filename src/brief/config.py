@@ -83,9 +83,7 @@ class SourceConfig(StrictModel):
 
     @model_validator(mode="after")
     def validate_type_fields(self) -> SourceConfig:
-        if self.type is SourceType.RSS and any(
-            (self.discovery, self.extraction, self.pagination)
-        ):
+        if self.type is SourceType.RSS and any((self.discovery, self.extraction, self.pagination)):
             raise ValueError("RSS sources cannot define discovery, extraction, or pagination")
         return self
 
@@ -214,9 +212,7 @@ def load_config(path: Path) -> AppConfig:
     serialized_keys = {str(key).lower() for key in _walk_keys(raw)}
     present = sorted(forbidden & serialized_keys)
     if present:
-        raise ConfigurationError(
-            f"secrets are not allowed in YAML ({', '.join(present)}); use environment variables"
-        )
+        raise ConfigurationError(f"secrets are not allowed in YAML ({', '.join(present)}); use environment variables")
     try:
         return AppConfig.model_validate(raw).resolve_paths(path)
     except ValueError as error:
@@ -231,4 +227,3 @@ def _walk_keys(value: Any):
     elif isinstance(value, list):
         for nested in value:
             yield from _walk_keys(nested)
-

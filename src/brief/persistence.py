@@ -12,7 +12,6 @@ from brief.config import SourceConfig
 from brief.models import Article, Edition, EditionStatus
 from brief.processing import content_fingerprint
 
-
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY,
@@ -231,9 +230,7 @@ class Database:
                 title=item["title"],
                 url=item["canonical_url"],
                 author=item["author"],
-                published_at=datetime.fromisoformat(item["published_at"])
-                if item["published_at"]
-                else None,
+                published_at=datetime.fromisoformat(item["published_at"]) if item["published_at"] else None,
                 fetched_at=datetime.fromisoformat(item["fetched_at"]),
                 content_html=item["content_html"],
                 content_text=item["content_text"],
@@ -265,9 +262,7 @@ class Database:
             )
         return run_id
 
-    def finish_run(
-        self, run_id: str, status: str, *, error: str | None = None, stats: dict | None = None
-    ) -> None:
+    def finish_run(self, run_id: str, status: str, *, error: str | None = None, stats: dict | None = None) -> None:
         with self.connect() as connection:
             connection.execute(
                 "UPDATE runs SET finished_at=?,status=?,error_summary=?,stats_json=? WHERE id=?",
@@ -276,11 +271,7 @@ class Database:
 
     def recent_runs(self, limit: int = 20) -> list[sqlite3.Row]:
         with self.connect() as connection:
-            return list(
-                connection.execute(
-                    "SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,)
-                ).fetchall()
-            )
+            return list(connection.execute("SELECT * FROM runs ORDER BY started_at DESC LIMIT ?", (limit,)).fetchall())
 
     def successful_delivery_exists(self, edition_id: str, provider: str) -> bool:
         with self.connect() as connection:
@@ -290,9 +281,7 @@ class Database:
             ).fetchone()
             return row is not None
 
-    def record_delivery(
-        self, edition_id: str, provider: str, status: str, error: str | None = None
-    ) -> str:
+    def record_delivery(self, edition_id: str, provider: str, status: str, error: str | None = None) -> str:
         attempt_id = uuid.uuid4().hex
         now = _now()
         with self.connect() as connection:
@@ -330,4 +319,3 @@ def _dt(value: datetime | None) -> str | None:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
-

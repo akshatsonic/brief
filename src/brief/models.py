@@ -85,4 +85,3 @@ class BuildResult(Model):
     selected_count: int
     artifact: Path | None = None
     diagnostics: list[str] = Field(default_factory=list)
-

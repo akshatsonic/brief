@@ -88,4 +88,3 @@ def artifact_sha256(path: Path) -> str:
 
 def _slug(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.casefold()).strip("-") or "edition"
-

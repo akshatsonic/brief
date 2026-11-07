@@ -283,4 +283,3 @@ def _html_text(value: str) -> str:
     parser = _TextExtractor()
     parser.feed(value)
     return normalize_text(" ".join(parser.parts))
-

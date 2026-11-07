@@ -15,10 +15,7 @@ from brief.security import UnsafeUrlError, canonicalize_url, validate_public_url
 
 
 def test_canonicalize_url_removes_tracking_and_fragment() -> None:
-    assert (
-        canonicalize_url("HTTPS://Example.com:443/a?utm_source=x&b=2&a=1#part")
-        == "https://example.com/a?a=1&b=2"
-    )
+    assert canonicalize_url("HTTPS://Example.com:443/a?utm_source=x&b=2&a=1#part") == "https://example.com/a?a=1&b=2"
 
 
 def test_rejects_private_destination() -> None:
@@ -77,9 +74,7 @@ def test_pipeline_filters_stale_articles() -> None:
     config = AppConfig.model_validate(
         {
             "publication": {"name": "Paper"},
-            "sources": [
-                {"id": "one", "name": "One", "type": "rss", "url": "https://one.test"}
-            ],
+            "sources": [{"id": "one", "name": "One", "type": "rss", "url": "https://one.test"}],
             "editorial": {"min_content_words": 1, "max_age_hours": 24},
         }
     )

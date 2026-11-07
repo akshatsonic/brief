@@ -8,9 +8,7 @@ from brief.persistence import Database
 def test_persists_and_reloads_edition(tmp_path) -> None:
     database = Database(tmp_path / "state.db")
     database.migrate()
-    source = SourceConfig(
-        id="fixture", name="Fixture", type="rss", url="https://example.test/feed"
-    )
+    source = SourceConfig(id="fixture", name="Fixture", type="rss", url="https://example.test/feed")
     database.sync_sources([source])
     article = Article(
         id="a" * 64,
@@ -39,9 +37,7 @@ def test_persists_and_reloads_edition(tmp_path) -> None:
 def test_delivery_and_lease_idempotency(tmp_path) -> None:
     database = Database(tmp_path / "state.db")
     database.migrate()
-    source = SourceConfig(
-        id="fixture", name="Fixture", type="rss", url="https://example.test/feed"
-    )
+    source = SourceConfig(id="fixture", name="Fixture", type="rss", url="https://example.test/feed")
     database.sync_sources([source])
     edition = Edition(
         id="e" * 64,

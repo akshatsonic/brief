@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>{{ article.title }}</title></head><body>
+<article><h1>{{ article.title }}</h1><p class="meta">{% if article.author %}By {{ article.author }}{% endif %}
+{% if article.published_at %} · {{ article.published_at.strftime('%Y-%m-%d %H:%M %Z') }}{% endif %}</p>
+{% if article.content_html %}<div>{{ article.content_html|safe }}</div>{% else %}<div>{% for paragraph in article.content_text.split('\n') %}<p>{{ paragraph }}</p>{% endfor %}</div>{% endif %}
+<hr/><p class="attribution">Source: <a href="{{ article.url }}">{{ article.url }}</a></p></article></body></html>
+

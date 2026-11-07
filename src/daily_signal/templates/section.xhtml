@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>{{ category|title }}</title></head>
+<body><h1>{{ category|title }}</h1><ol class="article-list">{% for article in articles %}<li><strong>{{ article.title }}</strong>
+{% if article.author %}<span class="meta"> — {{ article.author }}</span>{% endif %}</li>{% endfor %}</ol></body></html>
+

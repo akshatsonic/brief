@@ -49,12 +49,26 @@ class SafeFetcher:
 
     async def _request(self, url: str, fetcher: FetcherType):
         if fetcher is FetcherType.BROWSER:
+            async def guard_request(route) -> None:
+                target = route.request.url
+                if urlsplit(target).scheme in {"http", "https"}:
+                    try:
+                        self.url_validator(target)
+                    except Exception:
+                        await route.abort("blockedbyclient")
+                        return
+                await route.continue_()
+
+            async def setup_page(page) -> None:
+                await page.route("**/*", guard_request)
+
             async with AsyncStealthySession(
                 headless=True,
                 disable_resources=True,
                 timeout=int(self.config.timeout_seconds * 1000),
                 google_search=False,
                 solve_cloudflare=False,
+                page_setup=setup_page,
             ) as session:
                 return await session.fetch(url)
         async with FetcherSession(
@@ -87,6 +101,9 @@ class SafeFetcher:
             robots_url = urljoin(origin, "/robots.txt")
             try:
                 response = await self._request(self.url_validator(robots_url), FetcherType.HTTP)
+                self._last_request[origin] = time.monotonic()
+                if len(response.body) > self.config.max_response_mb * 1024 * 1024:
+                    raise FetchError("robots.txt exceeds response size limit")
                 if response.status == 404:
                     lines: list[str] = []
                 elif response.status in {401, 403}:

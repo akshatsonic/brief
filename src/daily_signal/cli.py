@@ -17,6 +17,7 @@ from daily_signal import __version__
 from daily_signal.config import AppConfig, ConfigurationError, FetcherType, SourceConfig, load_config
 from daily_signal.fetching import SafeFetcher
 from daily_signal.persistence import Database
+from daily_signal.scheduling import serve as serve_scheduler
 from daily_signal.service import BuildError, NewspaperService
 from daily_signal.sources import adapter_for
 
@@ -216,6 +217,23 @@ def runs(
     for row in database.recent_runs(limit):
         table.add_row(row["started_at"], row["kind"], row["status"], row["error_summary"] or "—")
     console.print(table)
+
+
+@app.command()
+def serve(
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+) -> None:
+    """Run the foreground scheduler for Docker or systemd."""
+    loaded = _load(config)
+    console.print(
+        f"Scheduling [bold]{loaded.publication.name}[/bold] at "
+        f"[bold]{loaded.publication.schedule}[/bold] ({loaded.publication.timezone})."
+    )
+    console.print("Keep this process running; press Ctrl-C to stop.")
+    try:
+        serve_scheduler(loaded)
+    except Exception as error:
+        _fail(f"scheduler stopped: {type(error).__name__}: {error}")
 
 
 @app.command()

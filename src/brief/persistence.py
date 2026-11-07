@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS articles (
     category TEXT,
     language TEXT,
     image_url TEXT,
+    image_media_type TEXT,
+    image_data BLOB,
     UNIQUE(source_id, canonical_url)
 );
 CREATE INDEX IF NOT EXISTS articles_url_idx ON articles(canonical_url);
@@ -130,6 +132,15 @@ class Database:
                 "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(2, ?)",
                 (_now(),),
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(articles)").fetchall()}
+            if "image_media_type" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN image_media_type TEXT")
+            if "image_data" not in columns:
+                connection.execute("ALTER TABLE articles ADD COLUMN image_data BLOB")
+            connection.execute(
+                "INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES(3, ?)",
+                (_now(),),
+            )
 
     def sync_sources(self, sources: list[SourceConfig]) -> None:
         with self.connect() as connection:
@@ -166,19 +177,23 @@ class Database:
             article.category,
             article.language,
             article.image_url,
+            article.image_media_type,
+            article.image_data,
         )
         with self.connect() as connection:
             connection.execute(
                 """INSERT INTO articles(
                 id,source_id,title,url,canonical_url,author,published_at,fetched_at,
-                content_html,content_text,content_fingerprint,summary,category,language,image_url
-                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                content_html,content_text,content_fingerprint,summary,category,language,image_url,
+                image_media_type,image_data
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
                 title=excluded.title,url=excluded.url,canonical_url=excluded.canonical_url,
                 author=excluded.author,published_at=excluded.published_at,
                 fetched_at=excluded.fetched_at,content_html=excluded.content_html,
                 content_text=excluded.content_text,content_fingerprint=excluded.content_fingerprint,
                 summary=excluded.summary,category=excluded.category,language=excluded.language,
-                image_url=excluded.image_url""",
+                image_url=excluded.image_url,image_media_type=excluded.image_media_type,
+                image_data=excluded.image_data""",
                 values,
             )
 
@@ -246,6 +261,8 @@ class Database:
                 content_text=item["content_text"],
                 summary=item["summary"],
                 image_url=item["image_url"],
+                image_media_type=item["image_media_type"],
+                image_data=item["image_data"],
                 category=item["category"],
                 language=item["language"],
             )

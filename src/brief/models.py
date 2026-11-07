@@ -24,6 +24,8 @@ class Article(Model):
     content_text: str
     summary: str | None = None
     image_url: str | None = None
+    image_media_type: str | None = None
+    image_data: bytes | None = None
     category: str | None = None
     language: str | None = None
 

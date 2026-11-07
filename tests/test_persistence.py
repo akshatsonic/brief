@@ -18,6 +18,8 @@ def test_persists_and_reloads_edition(tmp_path) -> None:
         fetched_at=datetime.now(UTC),
         content_text="content",
         image_url="https://example.test/story.jpg",
+        image_media_type="image/jpeg",
+        image_data=b"image-bytes",
     )
     edition = Edition(
         id="e" * 64,
@@ -34,6 +36,8 @@ def test_persists_and_reloads_edition(tmp_path) -> None:
     assert loaded is not None
     assert loaded.articles[0].title == "Story"
     assert loaded.articles[0].image_url == "https://example.test/story.jpg"
+    assert loaded.articles[0].image_media_type == "image/jpeg"
+    assert loaded.articles[0].image_data == b"image-bytes"
 
 
 def test_delivery_and_lease_idempotency(tmp_path) -> None:

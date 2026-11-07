@@ -108,6 +108,16 @@ publication:
   schedule: "0 7 * * *"
   max_articles: 20
 
+sources:
+  - id: techcrunch
+    name: TechCrunch
+    type: website
+    url: https://techcrunch.com/
+    max_articles: 8 # optional cap on articles extracted from this source per build
+
+network:
+  max_concurrent_sources: 4 # async source jobs; each source also extracts up to four pages at a time
+
 editorial:
   max_age_hours: 36
   min_content_words: 40
@@ -134,6 +144,10 @@ llm:
 
 Secrets never belong in YAML. The OpenAI API key comes from the environment variable named by
 `llm.api_key_env`. The Codex CLI backend uses the account already authenticated by `codex login`.
+Set a source's `max_articles` to cap article extraction for that source; omit it to process every
+discovered item. `network.max_concurrent_sources` controls how many sources Brief scrapes at once
+(default 4). This uses asynchronous tasks rather than OS threads. Brief still applies each source's
+request delay per website origin.
 
 ## Magazine design
 

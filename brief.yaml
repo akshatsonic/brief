@@ -1,0 +1,50 @@
+publication:
+  name: The Brief
+  timezone: Asia/Kolkata
+  schedule: 0 7 * * *
+  max_articles: 20
+  language: en
+sources:
+- id: news-ycombinator
+  name: News Ycombinator
+  type: rss
+  url: https://news.ycombinator.com/rss
+  category: News
+- id: techcrunch
+  name: Techcrunch
+  max_articles: 5
+  type: website
+  url: https://techcrunch.com/
+  category: technology
+  discovery:
+    article_links: h3 a[href]
+  fetcher: browser
+  extraction:
+    title: h1
+editorial:
+  deduplicate: true
+  max_age_hours: 36
+  min_content_words: 40
+  categories: []
+  category_rules: []
+output:
+  format: pdf
+  theme: magazine
+  directory: ./output
+database:
+  path: ./.brief/brief.db
+network:
+  timeout_seconds: 30
+  max_response_mb: 10
+  retries: 3
+  respect_robots: true
+delivery:
+  provider: local
+  max_attachment_mb: 25
+scheduler:
+  misfire_grace_seconds: 3600
+  retry_delays_seconds:
+  - 60
+  - 300
+  - 900
+  lease_seconds: 7200

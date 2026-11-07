@@ -12,6 +12,7 @@ sources:
     url: https://news.ycombinator.com/rss
     category: technology
     fetch_article: auto
+    max_articles: 12 # optional per-source extraction cap
   - id: example-blog
     name: Example Blog
     type: website
@@ -52,6 +53,7 @@ network:
   timeout_seconds: 30
   max_response_mb: 10
   retries: 3
+  max_concurrent_sources: 4
   respect_robots: true
 delivery: {provider: local, max_attachment_mb: 25}
 scheduler:

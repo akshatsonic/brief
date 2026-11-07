@@ -70,6 +70,7 @@ class SourceConfig(StrictModel):
     discovery: DiscoveryConfig | None = None
     extraction: ExtractionConfig | None = None
     pagination: PaginationConfig | None = None
+    max_articles: int | None = Field(default=None, ge=1, le=500)
     request_delay_seconds: float = Field(default=1.0, ge=0, le=60)
 
     @field_validator("url")
@@ -169,6 +170,7 @@ class NetworkConfig(StrictModel):
     timeout_seconds: float = Field(default=30, ge=1, le=120)
     max_response_mb: int = Field(default=10, ge=1, le=100)
     retries: int = Field(default=3, ge=0, le=10)
+    max_concurrent_sources: int = Field(default=4, ge=1, le=32)
     user_agent: str = "Brief/0.1 (+https://github.com/brief)"
     respect_robots: bool = True
 

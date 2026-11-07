@@ -80,22 +80,33 @@ class NewspaperService:
                     )
         diagnostics: list[str] = []
         articles = []
-        discovered_count = 0
-        for source in self.config.sources:
-            if not source.enabled:
-                continue
+        enabled_sources = [source for source in self.config.sources if source.enabled]
+        source_semaphore = asyncio.Semaphore(self.config.network.max_concurrent_sources)
+
+        async def scrape_source(source):
             adapter = adapter_for(source, self.fetcher)
-            try:
-                items = await adapter.discover()
-                discovered_count += len(items)
-                outcomes = await _extract_items(adapter, items)
-                for outcome in outcomes:
-                    if isinstance(outcome, BaseException):
-                        diagnostics.append(f"{source.id}: {type(outcome).__name__}: {outcome}")
-                    else:
-                        articles.append(outcome)
-            except Exception as error:
-                diagnostics.append(f"{source.id}: {type(error).__name__}: {error}")
+            async with source_semaphore:
+                try:
+                    items = await adapter.discover()
+                    limited_items = items[: source.max_articles] if source.max_articles is not None else items
+                    outcomes = await _extract_items(adapter, limited_items)
+                    source_articles = []
+                    source_diagnostics = []
+                    for outcome in outcomes:
+                        if isinstance(outcome, BaseException):
+                            source_diagnostics.append(f"{source.id}: {type(outcome).__name__}: {outcome}")
+                        else:
+                            source_articles.append(outcome)
+                    return len(items), source_articles, source_diagnostics
+                except Exception as error:
+                    return 0, [], [f"{source.id}: {type(error).__name__}: {error}"]
+
+        source_results = await asyncio.gather(*(scrape_source(source) for source in enabled_sources))
+        discovered_count = 0
+        for source_discovered, source_articles, source_diagnostics in source_results:
+            discovered_count += source_discovered
+            articles.extend(source_articles)
+            diagnostics.extend(source_diagnostics)
         selection_limit = max(self.config.publication.max_articles, self.config.llm.max_input_articles)
         selected = EditorialPipeline().process(
             articles,

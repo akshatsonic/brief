@@ -33,7 +33,7 @@ class EpubRenderer:
         artifact = destination / f"{_slug(edition.publication_name)}-{edition.publication_date}.epub"
         book = epub.EpubBook()
         book.set_identifier(edition.id)
-        book.set_title(edition.publication_name)
+        book.set_title(edition.display_title)
         book.set_language(edition.language)
         book.add_metadata("DC", "date", edition.publication_date.isoformat())
         css = epub.EpubItem(

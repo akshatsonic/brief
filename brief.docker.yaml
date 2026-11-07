@@ -1,5 +1,5 @@
 publication:
-  name: The Morning Brief
+  name: The Brief
   timezone: UTC
   schedule: "0 7 * * *"
   max_articles: 20

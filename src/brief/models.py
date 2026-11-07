@@ -68,6 +68,11 @@ class Edition(Model):
     artifact_path: Path | None = None
     artifact_sha256: str | None = None
 
+    @property
+    def display_title(self) -> str:
+        date_and_day = self.publication_date.strftime("%d %B %Y - %A")
+        return f"{self.publication_name} : {date_and_day}"
+
 
 class DeliveryStatus(StrEnum):
     DRY_RUN = "dry_run"

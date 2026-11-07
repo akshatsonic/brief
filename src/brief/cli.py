@@ -58,7 +58,7 @@ def initialize(
         _fail(f"configuration already exists: {config}; pass --force to replace it")
     raw = {
         "publication": {
-            "name": typer.prompt("Newspaper name", default="The Morning Brief"),
+            "name": typer.prompt("Newspaper name", default="The Brief"),
             "timezone": typer.prompt("Timezone", default="UTC"),
             "schedule": typer.prompt("Daily cron schedule", default="0 7 * * *"),
             "max_articles": 20,

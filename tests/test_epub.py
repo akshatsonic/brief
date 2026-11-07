@@ -40,6 +40,8 @@ def test_builds_epub_with_navigation_and_article(tmp_path) -> None:
         assert b"../images/aaaaaaaaaaaaaaaa.png" in article_markup
         image_name = next(name for name in names if name.endswith("images/aaaaaaaaaaaaaaaa.png"))
         assert archive.read(image_name).startswith(b"\x89PNG")
+        cover_name = next(name for name in names if name.endswith("cover.xhtml"))
+        assert b"Fixture Paper : 07 November 2026 - Saturday" in archive.read(cover_name)
 
 
 def test_custom_stylesheet_overrides_theme(tmp_path) -> None:

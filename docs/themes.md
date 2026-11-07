@@ -24,7 +24,7 @@ Any of these files in that directory overrides the built-in file of the same nam
 
 | File | Template variables |
 | --- | --- |
-| `cover.xhtml` | `edition` |
+| `cover.xhtml` | `edition` (`edition.display_title` includes the date and weekday) |
 | `section.xhtml` | `category`, `articles`, `article_hrefs` |
 | `article.xhtml` | `article`, `image_href` |
 | `style.css` | none; replaces the selected theme stylesheet |

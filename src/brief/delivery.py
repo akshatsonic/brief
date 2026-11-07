@@ -52,7 +52,7 @@ class KindleSmtpDeliveryProvider:
                 message=f"would submit {artifact.name} to Kindle",
             )
         message = EmailMessage()
-        message["Subject"] = f"{edition.publication_name} — {edition.publication_date}"
+        message["Subject"] = edition.display_title
         message["From"] = settings["sender"]
         message["To"] = recipient
         message.set_content("Brief EPUB delivery. SMTP acceptance does not guarantee Kindle import.")

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>{{ edition.publication_name }}</title></head>
-<body class="cover"><h1>{{ edition.publication_name }}</h1><p>{{ edition.publication_date.strftime('%A, %B %d, %Y') }}</p>
-<p class="meta">Your sources. Your newspaper. Your schedule.</p></body></html>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>{{ edition.publication_name }}</title></head>
+<body class="cover">
+  <p class="edition-label">Daily edition</p>
+  <h1>{{ edition.publication_name }}</h1>
+  <p class="cover-date">{{ edition.publication_date.strftime('%A, %B %d, %Y') }}</p>
+  <p class="cover-count">{{ edition.articles|length }} articles</p>
+</body></html>
 

@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from brief.config import AppConfig
+from brief.config import AppConfig, FetcherType
 from brief.delivery import DeliveryError, provider_for
 from brief.fetching import SafeFetcher
 from brief.models import BuildResult, Edition, EditionStatus
@@ -31,7 +31,10 @@ class NewspaperService:
         self.config = config
         self.database = database or Database(config.database.path)
         self.fetcher = fetcher or SafeFetcher(config.network)
-        self.renderer = renderer or EpubRenderer()
+        self.renderer = renderer or EpubRenderer(
+            theme=config.output.theme,
+            template_directory=config.output.template_directory,
+        )
 
     async def build(self, publication_date: date | None = None, *, dry_run: bool = False) -> BuildResult:
         zone = ZoneInfo(self.config.publication.timezone)
@@ -92,6 +95,8 @@ class NewspaperService:
                 selected_count=len(selected),
                 diagnostics=diagnostics,
             )
+        if self.config.output.include_images:
+            selected = await _embed_article_images(selected, self.config, self.fetcher, diagnostics)
         if not selected:
             raise BuildError("no qualifying articles were found; " + "; ".join(diagnostics[:3]))
         self.database.migrate()
@@ -187,3 +192,44 @@ async def _extract_items(adapter, items):
             return await adapter.extract(item)
 
     return await asyncio.gather(*(extract(item) for item in items), return_exceptions=True)
+
+
+async def _embed_article_images(articles, config: AppConfig, fetcher: SafeFetcher, diagnostics: list[str]):
+    sources = {source.id: source for source in config.sources}
+    hydrated = []
+    limit = config.output.max_image_mb * 1024 * 1024
+    for article in articles:
+        source = sources.get(article.source_id)
+        if not article.image_url or source is None:
+            hydrated.append(article)
+            continue
+        try:
+            image_source = source.model_copy(update={"fetcher": FetcherType.HTTP})
+            response = await fetcher.fetch(article.image_url, image_source)
+            media_type = _supported_image_type(response)
+            if media_type is None:
+                raise ValueError("image must be JPEG, PNG, or GIF")
+            if len(response.body) > limit:
+                raise ValueError(f"image exceeds {config.output.max_image_mb} MiB limit")
+            hydrated.append(
+                article.model_copy(update={"image_media_type": media_type, "image_data": bytes(response.body)})
+            )
+        except Exception as error:
+            diagnostics.append(f"{article.source_id}: image skipped: {type(error).__name__}: {error}")
+            hydrated.append(article)
+    return hydrated
+
+
+def _supported_image_type(response) -> str | None:
+    header = response.headers.get("content-type") or response.headers.get("Content-Type") or ""
+    media_type = str(header).split(";", 1)[0].strip().lower()
+    if media_type in {"image/jpeg", "image/png", "image/gif"}:
+        return media_type
+    body = bytes(response.body[:12])
+    if body.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if body.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if body.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    return None

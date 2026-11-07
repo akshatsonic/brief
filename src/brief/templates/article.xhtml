@@ -1,7 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>{{ article.title }}</title></head><body>
-<article><h1>{{ article.title }}</h1><p class="meta">{% if article.author %}By {{ article.author }}{% endif %}
-{% if article.published_at %} · {{ article.published_at.strftime('%Y-%m-%d %H:%M %Z') }}{% endif %}</p>
-{% if article.content_html %}<div>{{ article.content_html|safe }}</div>{% else %}<div>{% for paragraph in article.content_text.split('\n') %}<p>{{ paragraph }}</p>{% endfor %}</div>{% endif %}
-<hr/><p class="attribution">Source: <a href="{{ article.url }}">{{ article.url }}</a></p></article></body></html>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>{{ article.title }}</title></head>
+<body class="article-page{% if not image_href %} article-page--text{% endif %}">
+<article>
+  {% if image_href %}<div class="hero-image"><img src="{{ image_href }}" alt=""/></div>{% endif %}
+  <header class="article-header">
+    {% if article.category %}<p class="kicker">{{ article.category|title }}</p>{% endif %}
+    <h1>{{ article.title }}</h1>
+    {% if article.summary %}<p class="summary">{{ article.summary }}</p>{% endif %}
+    <p class="meta">{% if article.author %}By {{ article.author }}{% endif %}
+    {% if article.published_at %}{% if article.author %} · {% endif %}{{ article.published_at.strftime('%Y-%m-%d %H:%M %Z') }}{% endif %}</p>
+  </header>
+  <div class="article-body">{% if article.content_html %}{{ article.content_html|safe }}{% else %}{% for paragraph in article.content_text.split('\n') %}<p>{{ paragraph }}</p>{% endfor %}{% endif %}</div>
+  <p class="attribution">Original article: <a href="{{ article.url }}">{{ article.url }}</a></p>
+</article>
+</body>
+</html>
 

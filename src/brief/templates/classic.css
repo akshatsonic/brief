@@ -7,7 +7,10 @@ h2 { font-size: 1.3em; }
 .meta, .attribution { color: #555; font-size: 0.85em; }
 .article-list { padding-left: 1.2em; }
 a { color: #222; }
-img, video, iframe, script, form { display: none; }
+img { display: block; height: auto; max-width: 100%; margin: 1em auto; }
+video, iframe, script, form { display: none; }
+.summary { font-size: 1.1em; font-style: italic; }
+.kicker, .edition-label { font-size: 0.8em; font-weight: bold; }
 pre, code { white-space: pre-wrap; font-family: monospace; }
 table { border-collapse: collapse; max-width: 100%; }
 th, td { border: 1px solid #999; padding: 0.2em; }

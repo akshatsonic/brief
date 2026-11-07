@@ -23,7 +23,21 @@ def test_loads_defaults_and_resolves_paths(tmp_path: Path) -> None:
     config = load_config(path)
     assert config.publication.max_articles == 20
     assert config.output.directory == tmp_path / "output"
+    assert config.output.theme == "magazine"
+    assert config.output.include_images is True
     assert config.database.path == tmp_path / ".brief/brief.db"
+
+
+def test_resolves_custom_template_directory(tmp_path: Path) -> None:
+    path = write_config(
+        tmp_path,
+        {
+            "publication": {"name": "Morning"},
+            "sources": [],
+            "output": {"template_directory": "./themes/custom"},
+        },
+    )
+    assert load_config(path).output.template_directory == tmp_path / "themes/custom"
 
 
 def test_rejects_duplicate_sources(tmp_path: Path) -> None:

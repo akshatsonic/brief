@@ -131,8 +131,11 @@ class EditorialConfig(StrictModel):
 
 class OutputConfig(StrictModel):
     format: Literal["epub"] = "epub"
-    theme: Literal["classic"] = "classic"
+    theme: Literal["classic", "magazine"] = "magazine"
     directory: ConfigPath = Path("./output")
+    template_directory: ConfigPath | None = None
+    include_images: bool = True
+    max_image_mb: int = Field(default=5, ge=1, le=25)
 
 
 class DeliveryConfig(StrictModel):
@@ -194,6 +197,8 @@ class AppConfig(StrictModel):
         self.config_path = config_path.resolve()
         if not self.output.directory.is_absolute():
             self.output.directory = (base / self.output.directory).resolve()
+        if self.output.template_directory and not self.output.template_directory.is_absolute():
+            self.output.template_directory = (base / self.output.template_directory).resolve()
         if not self.database.path.is_absolute():
             self.database.path = (base / self.database.path).resolve()
         return self

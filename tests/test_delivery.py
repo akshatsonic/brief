@@ -39,13 +39,11 @@ def test_smtp_delivery_uses_attachment_and_starttls(tmp_path, monkeypatch) -> No
     assert any(part.get_filename() == "paper.epub" for part in sent.walk())
 
 
-def test_rejects_oversized_attachment_before_smtp(tmp_path, monkeypatch) -> None:
+def test_rejects_oversized_attachment_before_smtp(tmp_path) -> None:
     artifact = tmp_path / "large.epub"
-    artifact.write_bytes(b"x" * 20)
+    artifact.write_bytes(b"x" * (1024 * 1024 + 1))
     provider = KindleSmtpDeliveryProvider(
         DeliveryConfig(provider="kindle", kindle_email="reader@test", max_attachment_mb=1)
     )
-    with patch.object(type(artifact), "stat") as stat:
-        stat.return_value.st_size = 2 * 1024 * 1024
-        with pytest.raises(DeliveryError, match="exceeds"):
-            provider.deliver(artifact, edition())
+    with pytest.raises(DeliveryError, match="exceeds"):
+        provider.deliver(artifact, edition())

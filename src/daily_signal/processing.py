@@ -6,7 +6,7 @@ from collections.abc import Iterable, Protocol
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from html import unescape
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin
 
 import nh3
 

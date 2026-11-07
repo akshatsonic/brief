@@ -35,7 +35,10 @@ def canonicalize_url(url: str) -> str:
     except ValueError:
         pass
     port = parts.port
-    if port and not ((parts.scheme.lower() == "http" and port == 80) or (parts.scheme.lower() == "https" and port == 443)):
+    default_port = (parts.scheme.lower() == "http" and port == 80) or (
+        parts.scheme.lower() == "https" and port == 443
+    )
+    if port and not default_port:
         host = f"{host}:{port}"
     path = quote(parts.path or "/", safe="/%:@!$&'()*+,;=-._~")
     query = [

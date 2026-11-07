@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -21,7 +22,11 @@ from daily_signal.scheduling import serve as serve_scheduler
 from daily_signal.service import BuildError, NewspaperService
 from daily_signal.sources import adapter_for
 
-app = typer.Typer(name="daily-signal", help="Turn your sources into a personal daily EPUB newspaper.", no_args_is_help=True)
+app = typer.Typer(
+    name="daily-signal",
+    help="Turn your sources into a personal daily EPUB newspaper.",
+    no_args_is_help=True,
+)
 source_app = typer.Typer(help="Add, inspect, and test newspaper sources.", no_args_is_help=True)
 app.add_typer(source_app, name="source")
 console = Console()
@@ -34,7 +39,11 @@ def version_callback(value: bool) -> None:
 
 
 @app.callback()
-def main(version: bool = typer.Option(False, "--version", callback=version_callback, is_eager=True, help="Show the version.")) -> None:
+def main(
+    version: bool = typer.Option(
+        False, "--version", callback=version_callback, is_eager=True, help="Show the version."
+    ),
+) -> None:
     """Build and deliver a curated newspaper from feeds and websites."""
 
 
@@ -120,7 +129,14 @@ def source_list(config: Path = typer.Option(Path("daily-signal.yaml"), "--config
     loaded = _load(config)
     table = Table("ID", "Name", "Type", "Fetcher", "Category", "Enabled")
     for source in loaded.sources:
-        table.add_row(source.id, source.name, source.type.value, source.fetcher.value, source.category or "—", "yes" if source.enabled else "no")
+        table.add_row(
+            source.id,
+            source.name,
+            source.type.value,
+            source.fetcher.value,
+            source.category or "—",
+            "yes" if source.enabled else "no",
+        )
     console.print(table)
 
 
@@ -144,7 +160,12 @@ def source_test(
         for item in items[:limit]:
             try:
                 article = await adapter.extract(item)
-                table.add_row(article.title, str(len(article.content_text.split())), article.published_at.isoformat() if article.published_at else "unknown", article.url)
+                table.add_row(
+                    article.title,
+                    str(len(article.content_text.split())),
+                    article.published_at.isoformat() if article.published_at else "unknown",
+                    article.url,
+                )
             except Exception as error:
                 table.add_row(item.title or "unknown", "error", type(error).__name__, str(error))
         console.print(table)
@@ -196,7 +217,8 @@ def publish(
         _fail(f"publish failed: {type(error).__name__}: {error}")
     if dry_run:
         console.print(
-            f"[yellow]Dry run:[/yellow] discovered {result.discovered_count}, selected {result.selected_count}; nothing was written or sent."
+            f"[yellow]Dry run:[/yellow] discovered {result.discovered_count}, "
+            f"selected {result.selected_count}; nothing was written or sent."
         )
     elif delivery is None:
         console.print("[yellow]Skipped:[/yellow] this edition was already delivered successfully.")
@@ -237,7 +259,10 @@ def serve(
 
 
 @app.command()
-def doctor(config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c")) -> None:
+def doctor(
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    skip_network: bool = typer.Option(False, "--skip-network", help="Skip source connectivity checks."),
+) -> None:
     """Validate configuration, database, output, browser, and delivery settings."""
     loaded = _load(config)
     checks: list[tuple[str, bool, str]] = [("Configuration", True, loaded.publication.name)]
@@ -255,10 +280,32 @@ def doctor(config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-
         checks.append(("Output", False, str(error)))
     if any(source.fetcher is FetcherType.BROWSER for source in loaded.sources):
         checks.append(("Browser", True, "configured; run `scrapling install` before first use"))
+    checks.append(
+        (
+            "EPUBCheck",
+            True,
+            shutil.which("epubcheck") or "not installed (optional)",
+        )
+    )
     if loaded.delivery.provider == "kindle":
         required = ["DAILY_SIGNAL_SMTP_HOST", "DAILY_SIGNAL_SMTP_USERNAME", "DAILY_SIGNAL_SMTP_PASSWORD"]
         missing = [name for name in required if not os.getenv(name)]
         checks.append(("SMTP", not missing, "missing: " + ", ".join(missing) if missing else "configured"))
+    if not skip_network:
+        async def check_sources() -> list[tuple[str, bool, str]]:
+            fetcher = SafeFetcher(loaded.network)
+            results = []
+            for source in loaded.sources:
+                if not source.enabled:
+                    continue
+                try:
+                    response = await fetcher.fetch(source.url, source)
+                    results.append((f"Source: {source.id}", True, f"HTTP {response.status}"))
+                except Exception as error:
+                    results.append((f"Source: {source.id}", False, str(error)))
+            return results
+
+        checks.extend(asyncio.run(check_sources()))
     table = Table("Check", "Status", "Details")
     for name, ok, details in checks:
         table.add_row(name, "[green]OK[/green]" if ok else "[red]FAIL[/red]", details)

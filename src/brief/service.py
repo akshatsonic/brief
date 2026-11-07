@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from brief.config import AppConfig, FetcherType
 from brief.delivery import DeliveryError, provider_for
+from brief.exporting import write_normalized_articles
 from brief.fetching import SafeFetcher
 from brief.models import BuildResult, Edition, EditionStatus
 from brief.persistence import Database
@@ -46,14 +47,17 @@ class NewspaperService:
             existing = self.database.load_edition(self.config.publication.name, target_date)
             if existing is not None:
                 if existing.artifact_path and existing.artifact_path.is_file():
+                    normalized_articles = write_normalized_articles(existing, self.config.output.directory)
                     return BuildResult(
                         edition=existing,
                         discovered_count=0,
                         selected_count=len(existing.articles),
                         artifact=existing.artifact_path,
+                        normalized_articles=normalized_articles,
                         diagnostics=["reused persisted edition"],
                     )
                 if existing.articles:
+                    normalized_articles = write_normalized_articles(existing, self.config.output.directory)
                     artifact = self.renderer.render(existing, self.config.output.directory)
                     existing = existing.model_copy(
                         update={
@@ -67,6 +71,7 @@ class NewspaperService:
                         discovered_count=0,
                         selected_count=len(existing.articles),
                         artifact=artifact,
+                        normalized_articles=normalized_articles,
                         diagnostics=["regenerated artifact from persisted edition"],
                     )
         diagnostics: list[str] = []
@@ -114,6 +119,7 @@ class NewspaperService:
         for article in selected:
             self.database.save_article(article)
         self.database.save_edition(edition)
+        normalized_articles = write_normalized_articles(edition, self.config.output.directory)
         run_id = self.database.begin_run("build", edition_id)
         try:
             artifact = self.renderer.render(edition, self.config.output.directory)
@@ -138,6 +144,7 @@ class NewspaperService:
             discovered_count=discovered_count,
             selected_count=len(selected),
             artifact=artifact,
+            normalized_articles=normalized_articles,
             diagnostics=diagnostics,
         )
 

@@ -201,6 +201,8 @@ def build(
     console.print(f"Discovered [bold]{result.discovered_count}[/bold]; selected [bold]{result.selected_count}[/bold].")
     if result.artifact:
         console.print(f"[green]Built[/green] {result.artifact}")
+        if result.normalized_articles:
+            console.print(f"[green]Articles[/green] {result.normalized_articles}")
     elif dry_run:
         console.print("[yellow]Dry run:[/yellow] no database or EPUB was written.")
     for diagnostic in result.diagnostics:

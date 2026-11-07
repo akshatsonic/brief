@@ -91,8 +91,13 @@ uv run brief build
 The generated newspaper is written to `output/`, for example:
 
 ```text
-output/the-morning-brief-2026-11-07.epub
+output/the-brief-2026-11-07.epub
+output/the-brief-2026-11-07.articles.json
 ```
+
+The JSON sidecar contains the final normalized article list used for the edition, including titles,
+canonical URLs, dates, normalized text and HTML, summaries, categories, and image URLs. Embedded
+binary image data is intentionally excluded so the file stays readable and easy to inspect.
 
 The default `magazine` theme gives every article its own chapter with a lead image when available,
 headline, summary, byline, body, and original-source link. Images are embedded in the EPUB, so they
@@ -183,7 +188,7 @@ Brief writes EPUB 3 with navigation and NCX compatibility. If
 [EPUBCheck](https://www.w3.org/publishing/epubcheck/) is installed:
 
 ```bash
-epubcheck output/the-morning-brief-2026-11-07.epub
+epubcheck output/the-brief-2026-11-07.epub
 ```
 
 ## Responsible use

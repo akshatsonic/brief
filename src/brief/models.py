@@ -93,4 +93,5 @@ class BuildResult(Model):
     discovered_count: int
     selected_count: int
     artifact: Path | None = None
+    normalized_articles: Path | None = None
     diagnostics: list[str] = Field(default_factory=list)

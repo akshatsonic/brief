@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from daily_signal.config import AppConfig
+from daily_signal.delivery import DeliveryError, provider_for
 from daily_signal.fetching import SafeFetcher
 from daily_signal.models import BuildResult, Edition, EditionStatus
 from daily_signal.persistence import Database
@@ -115,6 +117,44 @@ class NewspaperService:
             artifact=artifact,
             diagnostics=diagnostics,
         )
+
+    async def publish(
+        self, publication_date: date | None = None, *, dry_run: bool = False
+    ) -> tuple[BuildResult, object | None]:
+        if dry_run:
+            return await self.build(publication_date, dry_run=True), None
+        self.database.migrate()
+        owner = uuid.uuid4().hex
+        if not self.database.acquire_lease(
+            "publish", owner, self.config.scheduler.lease_seconds
+        ):
+            raise BuildError("another publication run is already active")
+        run_id = self.database.begin_run("publish")
+        try:
+            result = await self.build(publication_date)
+            assert result.edition is not None and result.artifact is not None
+            edition = result.edition
+            provider_name = self.config.delivery.provider
+            if self.database.successful_delivery_exists(edition.id, provider_name):
+                edition = edition.model_copy(update={"status": EditionStatus.DELIVERED})
+                self.database.save_edition(edition)
+                self.database.finish_run(run_id, "skipped", stats={"reason": "already delivered"})
+                return result.model_copy(update={"edition": edition}), None
+            try:
+                delivery = provider_for(self.config.delivery).deliver(result.artifact, edition)
+            except DeliveryError as error:
+                self.database.record_delivery(edition.id, provider_name, "failed", str(error))
+                raise
+            self.database.record_delivery(edition.id, provider_name, delivery.status.value)
+            edition = edition.model_copy(update={"status": EditionStatus.DELIVERED})
+            self.database.save_edition(edition)
+            self.database.finish_run(run_id, "succeeded")
+            return result.model_copy(update={"edition": edition}), delivery
+        except Exception as error:
+            self.database.finish_run(run_id, "failed", error=str(error))
+            raise
+        finally:
+            self.database.release_lease("publish", owner)
 
 
 def _cutoff(target: date, zone: ZoneInfo) -> datetime:

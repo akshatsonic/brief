@@ -179,6 +179,31 @@ def build(
 
 
 @app.command()
+def publish(
+    now: bool = typer.Option(False, "--now", help="Publish the current edition immediately."),
+    config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Discover and select without building or sending."),
+) -> None:
+    """Build and deliver an edition now."""
+    if not now:
+        _fail("publish requires --now; use `serve` for scheduled publishing")
+    loaded = _load(config)
+    try:
+        with console.status("Building and publishing…"):
+            result, delivery = asyncio.run(NewspaperService(loaded).publish(dry_run=dry_run))
+    except Exception as error:
+        _fail(f"publish failed: {type(error).__name__}: {error}")
+    if dry_run:
+        console.print(
+            f"[yellow]Dry run:[/yellow] discovered {result.discovered_count}, selected {result.selected_count}; nothing was written or sent."
+        )
+    elif delivery is None:
+        console.print("[yellow]Skipped:[/yellow] this edition was already delivered successfully.")
+    else:
+        console.print(f"[green]Published:[/green] {delivery.message}")
+
+
+@app.command()
 def runs(
     config: Path = typer.Option(Path("daily-signal.yaml"), "--config", "-c"),
     limit: int = typer.Option(20, min=1, max=200),

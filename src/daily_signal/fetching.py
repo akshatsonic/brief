@@ -68,9 +68,8 @@ class SafeFetcher:
                 timeout=int(self.config.timeout_seconds * 1000),
                 google_search=False,
                 solve_cloudflare=False,
-                page_setup=setup_page,
             ) as session:
-                return await session.fetch(url)
+                return await session.fetch(url, page_setup=setup_page)
         async with FetcherSession(
             timeout=self.config.timeout_seconds,
             retries=self.config.retries,

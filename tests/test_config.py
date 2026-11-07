@@ -23,8 +23,11 @@ def test_loads_defaults_and_resolves_paths(tmp_path: Path) -> None:
     config = load_config(path)
     assert config.publication.max_articles == 20
     assert config.output.directory == tmp_path / "output"
+    assert config.output.format == "pdf"
     assert config.output.theme == "magazine"
     assert config.output.include_images is True
+    assert config.llm.enabled is True
+    assert config.llm.api_key_env == "OPENAI_API_KEY"
     assert config.database.path == tmp_path / ".brief/brief.db"
 
 
